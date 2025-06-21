@@ -406,7 +406,7 @@ def lambda_handler(event, context):
                 region_name=bedrock_region
             )   
             response = client.list_knowledge_bases(
-                maxResults=5
+                maxResults=20
             )
             print('(list_knowledge_bases) response: ', response)
             
