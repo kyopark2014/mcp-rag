@@ -51,13 +51,13 @@ def load_config(mcp_type):
             }
         }    
     
-    elif mcp_type == "aws_knowledge_base":  
+    elif mcp_type == "knowledge_base_custom":
         return {
             "mcpServers": {
-                "aws_knowledge_base": {
+                "knowledge_base_custom": {
                     "command": "python",
                     "args": [
-                        "application/mcp_server_kb.py"
+                        "application/mcp_server_knowledge_base.py"
                     ],
                     "env": {
                         "KB_INCLUSION_TAG_KEY": "mcp-rag"
@@ -97,28 +97,10 @@ def load_selected_config(mcp_selections: dict[str, bool]):
     for server in selected_servers:
         # logger.info(f"server: {server}")
 
-        if server == "image generation":
-            config = load_config('image_generation')
-        elif server == "aws diagram":
-            config = load_config('aws_diagram')
-        elif server == "aws document":
-            config = load_config('aws_documentation')
-        elif server == "aws cost":
-            config = load_config('aws_cost')
-        elif server == "ArXiv":
-            config = load_config('arxiv')
-        elif server == "aws cloudwatch":
-            config = load_config('aws_cloudwatch')
-        elif server == "aws storage":
-            config = load_config('aws_storage')
-        elif server == "Knowledge Base (Lambda)":
+        if server == "Knowledge Base (Lambda)":
             config = load_config('knowledge_base_lambda')
-        elif server == "code interpreter":
-            config = load_config('code_interpreter')
-        elif server == "aws cli":
-            config = load_config('aws_cli')
-        elif server == "text editor":
-            config = load_config('text_editor')
+        elif server == "Knowledge Base (Custom)":
+            config = load_config('knowledge_base_custom')
         else:
             config = load_config(server)
         logger.info(f"config: {config}")

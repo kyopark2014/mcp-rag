@@ -93,7 +93,7 @@ export class CdkAdvancedRagStack extends cdk.Stack {
     });   
 
     // Knowledge Base Role
-    const knowledge_base_role = new iam.Role(this,  `role-knowledge-base-for-${projectName}`, {
+    const roleKnowledgeBase = new iam.Role(this,  `role-knowledge-base-for-${projectName}`, {
       roleName: `role-knowledge-base-for-${projectName}-${region}`,
       assumedBy: new iam.CompositePrincipal(
         new iam.ServicePrincipal("bedrock.amazonaws.com")
@@ -105,7 +105,7 @@ export class CdkAdvancedRagStack extends cdk.Stack {
       resources: [`*`],
       actions: ["bedrock:*"],
     });        
-    knowledge_base_role.attachInlinePolicy( 
+    roleKnowledgeBase.attachInlinePolicy( 
       new iam.Policy(this, `bedrock-invoke-policy-for-${projectName}`, {
         statements: [bedrockInvokePolicy],
       }),
@@ -116,7 +116,7 @@ export class CdkAdvancedRagStack extends cdk.Stack {
       resources: ['*'],
       actions: ["s3:*"],
     });
-    knowledge_base_role.attachInlinePolicy( 
+    roleKnowledgeBase.attachInlinePolicy( 
       new iam.Policy(this, `knowledge-base-s3-policy-for-${projectName}`, {
         statements: [bedrockKnowledgeBaseS3Policy],
       }),
@@ -126,15 +126,15 @@ export class CdkAdvancedRagStack extends cdk.Stack {
       resources: ['*'],
       actions: ["aoss:APIAccessAll"],
     });
-    knowledge_base_role.attachInlinePolicy( 
+    roleKnowledgeBase.attachInlinePolicy( 
       new iam.Policy(this, `bedrock-agent-opensearch-policy-for-${projectName}`, {
         statements: [knowledgeBaseOpenSearchPolicy],
       }),
     );  
 
-    // lambda-rag
-    const roleLambdaKnowledgeBase = new iam.Role(this, `role-lambda-rag-for-${projectName}`, {
-      roleName: `role-lambda-rag-for-${projectName}-${region}`,
+    // lambda Knowledge Base
+    const roleLambdaKnowledgeBase = new iam.Role(this, `role-lambda-knowledge-base-for-${projectName}`, {
+      roleName: `role-lambda-knowledge-base-for-${projectName}-${region}`,
       assumedBy: new iam.CompositePrincipal(
         new iam.ServicePrincipal("lambda.amazonaws.com"),
         new iam.ServicePrincipal("bedrock.amazonaws.com"),
@@ -145,7 +145,7 @@ export class CdkAdvancedRagStack extends cdk.Stack {
       actions: ['logs:CreateLogGroup'],
     });        
     roleLambdaKnowledgeBase.attachInlinePolicy( 
-      new iam.Policy(this, `create-log-policy-lambda-rag-for-${projectName}`, {
+      new iam.Policy(this, `log-policy-lambda-knowledge-base-for-${projectName}`, {
         statements: [CreateLogPolicy],
       }),
     );
@@ -154,19 +154,19 @@ export class CdkAdvancedRagStack extends cdk.Stack {
       actions: ["logs:CreateLogStream","logs:PutLogEvents"],
     });        
     roleLambdaKnowledgeBase.attachInlinePolicy( 
-      new iam.Policy(this, `create-stream-log-policy-lambda-rag-for-${projectName}`, {
+      new iam.Policy(this, `stream-log-policy-lambda-knowledge-base-for-${projectName}`, {
         statements: [CreateLogStreamPolicy],
       }),
     );      
 
     // bedrock
     roleLambdaKnowledgeBase.attachInlinePolicy( 
-      new iam.Policy(this, `tool-bedrock-invoke-policy-for-${projectName}`, {
+      new iam.Policy(this, `bedrock-invoke-policy-knowledge-base-for-${projectName}`, {
         statements: [bedrockInvokePolicy],
       }),
     );  
     roleLambdaKnowledgeBase.attachInlinePolicy( 
-      new iam.Policy(this, `tool-bedrock-agent-opensearch-policy-for-${projectName}`, {
+      new iam.Policy(this, `bedrock-agent-opensearch-policy-for-${projectName}`, {
         statements: [knowledgeBaseOpenSearchPolicy],
       }),
     );
@@ -176,7 +176,7 @@ export class CdkAdvancedRagStack extends cdk.Stack {
       resources: ['*'],
       actions: ["bedrock:*"],
     });
-    knowledge_base_role.attachInlinePolicy( 
+    roleKnowledgeBase.attachInlinePolicy( 
       new iam.Policy(this, `bedrock-agent-bedrock-policy-for-${projectName}`, {
         statements: [knowledgeBaseBedrockPolicy],
       }),
@@ -187,23 +187,7 @@ export class CdkAdvancedRagStack extends cdk.Stack {
       }),
     );  
 
-    // Add Bedrock Agent permissions for Lambda RAG
-    const bedrockAgentPolicy = new iam.PolicyStatement({
-      effect: iam.Effect.ALLOW,
-      resources: ['*'],
-      actions: [
-        "bedrock-agent:*",
-        "bedrock:ListKnowledgeBases",
-        "bedrock:Retrieve"
-      ],
-    });
-    roleLambdaKnowledgeBase.attachInlinePolicy( 
-      new iam.Policy(this, `bedrock-agent-policy-lambda-rag-for-${projectName}`, {
-        statements: [bedrockAgentPolicy],
-      }),
-    );
-
-    // Add Knowledge Base S3 permissions for Lambda RAG (same as knowledge_base_role)
+    // Add Knowledge Base S3 permissions for Lambda RAG (same as roleKnowledgeBase)
     roleLambdaKnowledgeBase.attachInlinePolicy( 
       new iam.Policy(this, `knowledge-base-s3-policy-lambda-rag-for-${projectName}`, {
         statements: [bedrockKnowledgeBaseS3Policy],
@@ -292,7 +276,7 @@ export class CdkAdvancedRagStack extends cdk.Stack {
           Principal: [
             account.arn,
             roleLambdaKnowledgeBase.roleArn,
-            knowledge_base_role.roleArn
+            roleKnowledgeBase.roleArn
           ], 
         },
       ]),
@@ -304,13 +288,6 @@ export class CdkAdvancedRagStack extends cdk.Stack {
     const domainName = projectName
     const resourceArn = `arn:aws:es:${region}:${accountId}:domain/${domainName}/*`
     
-    const OpenSearchAccessPolicy = new iam.PolicyStatement({        
-      resources: [resourceArn],      
-      actions: ['es:*'],
-      effect: iam.Effect.ALLOW,
-      principals: [new iam.AccountPrincipal(this.account)],      
-    });
-
     // Use CfnDomain (L1 construct) for more granular control over OpenSearch configuration
     const domain = new opensearch.CfnDomain(this, 'Domain', {
       engineVersion: 'OpenSearch_2.13',
@@ -480,7 +457,7 @@ export class CdkAdvancedRagStack extends cdk.Stack {
       ],
     });
     roleLambdaDocument.attachInlinePolicy(
-      new iam.Policy(this, `opensearch-policy-lambda-for-${projectName}`, {
+      new iam.Policy(this, `opensearch-policy-lambda-document-for-${projectName}`, {
         statements: [openSearchPolicy],
       }),
     );
@@ -570,7 +547,7 @@ export class CdkAdvancedRagStack extends cdk.Stack {
       }, 
     });
 
-    const lambdaRagKnowledgeBase = new lambda.DockerImageFunction(this, `knowledge-base-for-${projectName}`, {
+    const lambdaKnowledgeBase = new lambda.DockerImageFunction(this, `knowledge-base-for-${projectName}`, {
       description: 'RAG based on Knoeledge Base',
       functionName: `knowledge-base-for-${projectName}`,
       code: lambda.DockerImageCode.fromImageAsset(path.join(__dirname, '../../lambda-knowledge-base')),
@@ -583,13 +560,59 @@ export class CdkAdvancedRagStack extends cdk.Stack {
         "sharing_url": 'https://'+distribution_sharing.domainName,
       }
     });
-    lambdaRagKnowledgeBase.grantInvoke(new cdk.aws_iam.ServicePrincipal("bedrock.amazonaws.com"));         
+    lambdaKnowledgeBase.grantInvoke(new cdk.aws_iam.ServicePrincipal("bedrock.amazonaws.com"));     
+
+    // lambda Opensearch
+    const roleLambdaOpenSearch = new iam.Role(this, `role-lambda-opensearch-for-${projectName}`, {
+      roleName: `role-lambda-opensearch-for-${projectName}-${region}`,
+      assumedBy: new iam.CompositePrincipal(
+        new iam.ServicePrincipal("lambda.amazonaws.com"),
+        new iam.ServicePrincipal("bedrock.amazonaws.com"),
+      ),
+    });
+    roleLambdaOpenSearch.attachInlinePolicy( 
+      new iam.Policy(this, `log-policy-lambda-opensearch-for-${projectName}`, {
+        statements: [CreateLogPolicy],
+      }),
+    );
+    roleLambdaOpenSearch.attachInlinePolicy( 
+      new iam.Policy(this, `stream-log-policy-lambda-opensearch-for-${projectName}`, {
+        statements: [CreateLogStreamPolicy],
+      }),
+    );      
+    roleLambdaOpenSearch.attachInlinePolicy( 
+      new iam.Policy(this, `bedrock-invoke-policy-opensearch-for-${projectName}`, {
+        statements: [bedrockInvokePolicy],
+      }),
+    );  
+    roleLambdaOpenSearch.attachInlinePolicy(
+      new iam.Policy(this, `opensearch-policy-lambda-opensearch-for-${projectName}`, {
+        statements: [openSearchPolicy],
+      }),
+    );
+
+    // Lambda for opensearch
+    const lambdaOpenSearch = new lambda.DockerImageFunction(this, `opensearch-for-${projectName}`, {
+      description: 'RAG based on OpenSearch',
+      functionName: `opensearch-for-${projectName}`,
+      code: lambda.DockerImageCode.fromImageAsset(path.join(__dirname, '../../lambda-opensearch')),
+      timeout: cdk.Duration.seconds(120),
+      memorySize: 4096,
+      role: roleLambdaOpenSearch,
+      environment: {
+        bedrock_region: String(region),  
+        projectName: projectName,
+        opensearch_url: opensearch_url,
+        "sharing_url": 'https://'+distribution_sharing.domainName,
+      }
+    });
+    lambdaOpenSearch.grantInvoke(new cdk.aws_iam.ServicePrincipal("bedrock.amazonaws.com"));     
 
     const environment = {
       "projectName": projectName,
       "accountId": accountId,
       "region": region,
-      "knowledge_base_role": knowledge_base_role.roleArn,
+      "roleKnowledgeBase": roleKnowledgeBase.roleArn,
       "collectionArn": collectionArn,
       "serverless_opensearch_url": OpenSearchCollection.attrCollectionEndpoint,
       "managed_opensearch_url": opensearch_url,

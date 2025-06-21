@@ -83,9 +83,10 @@ with st.sidebar:
         ("Nova Premier", 'Nova Pro', 'Nova Lite', 'Nova Micro', "Claude 4 Sonnet", "Claude 4 Opus", 'Claude 3.7 Sonnet', 'Claude 3.5 Sonnet', 'Claude 3.0 Sonnet', 'Claude 3.5 Haiku'), index=index
     )
 
-    rag_type = st.radio(
-        label="RAG 타입을 선택하세요. ",options=["Knowledge Base", "OpenSearch"], index=0
-    )
+    if mode == 'RAG':
+        rag_type = st.radio(
+            label="RAG 타입을 선택하세요. ",options=["Knowledge Base", "OpenSearch"], index=0
+        )
     
     uploaded_file = None
     if mode == '이미지 분석':
@@ -130,7 +131,7 @@ with st.sidebar:
         st.subheader("⚙️ MCP Config")
 
         mcp_options = [ 
-            "basic", "Knowledge Base (Lambda)", "aws_knowledge_base", "OpenSearch", "사용자 설정"
+            "basic", "Knowledge Base (Lambda)", "Knowledge Base (Custom)", "OpenSearch", "사용자 설정"
         ]
         mcp_selections = {}
         default_selections = ["basic"]
