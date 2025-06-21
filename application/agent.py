@@ -61,7 +61,7 @@ async def call_model(state: State, config):
         tool_content = last_message.content
         logger.info(f"tool_name: {tool_name}, content: {tool_content[:800]}")
         
-        if tool_name == "SearchIndexTool":
+        if tool_name == "SearchIndexTool": # OpenSearch
             if ":" in tool_content:
                 extracted_json_data = tool_content.split(":", 1)[1].strip()
                 try:
@@ -106,7 +106,7 @@ async def call_model(state: State, config):
             )
             state["messages"] = messages
 
-        if tool_name == "QueryKnowledgeBases":
+        if tool_name == "QueryKnowledgeBases": # Knowledge Base
             content = ""
             try:
                 # Handle case where tool_content contains multiple JSON objects

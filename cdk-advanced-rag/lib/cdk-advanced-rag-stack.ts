@@ -44,9 +44,9 @@ const titan_embedding_v2 = [  // dimension = 1024
 const LLM_embedding = titan_embedding_v2;  //  titan_embedding_v2_single
 
 const max_object_size = 102400000; // 100 MB max size of an object, 50MB(default)
-const enableHybridSearch = 'true';
+const enableHybridSearch = 'Enable';
 const supportedFormat = JSON.stringify(["pdf", "txt", "csv", "pptx", "ppt", "docx", "doc", "xlsx", "py", "js", "md", "jpeg", "jpg", "png"]);  
-const enableParentDocumentRetrival = 'true';
+const enableParentDocumentRetrival = 'Enable';
 
 export class CdkAdvancedRagStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {

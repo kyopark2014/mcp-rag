@@ -672,7 +672,7 @@ def create_nori_index():
             print('error message: ', err_msg)                
             #raise Exception ("Not able to create the index")
 
-if enableHybridSearch == 'true':
+if enableHybridSearch == 'Enable':
     create_nori_index()
 
 def get_contextual_text(whole_text, splitted_text, llm): # per page
@@ -862,7 +862,7 @@ def add_to_opensearch(docs):
         return []    
         
     ids = []
-    if enableParentDocumentRetrival == 'true':
+    if enableParentDocumentRetrival == 'Enable':
         parent_splitter = RecursiveCharacterTextSplitter(
             chunk_size=2000,
             chunk_overlap=100,
@@ -1831,7 +1831,7 @@ def lambda_handler(event, context):
     print('event: ', event)    
     
     # Create index if hybrid search is enabled
-    if enableHybridSearch == 'true':
+    if enableHybridSearch == 'Enable':
         try:
             create_nori_index()
         except Exception as e:
