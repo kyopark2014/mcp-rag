@@ -254,8 +254,8 @@ export class CdkAdvancedRagStack extends cdk.Stack {
         enabled: true,
       },
       zoneAwareness: {
-        enabled: true,
-        availabilityZoneCount: 3,        
+        enabled: false,
+        // availabilityZoneCount: 3,  // for production
       }
     });
     new cdk.CfnOutput(this, `Domain-of-OpenSearch-for-${projectName}`, {
