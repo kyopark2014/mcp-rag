@@ -248,8 +248,11 @@ export class CdkAdvancedRagStack extends cdk.Stack {
       nodeToNodeEncryption: true,
       encryptionAtRest: {
         enabled: true,
+      },
+      zoneAwareness: {
+        enabled: false,
+        availabilityZoneCount: 1, // Explicitly set to 1 for single zone
       }
-      // Remove zoneAwareness configuration - defaults to disabled for single node
     });
     new cdk.CfnOutput(this, `Domain-of-OpenSearch-for-${projectName}`, {
       value: domain.domainArn,
