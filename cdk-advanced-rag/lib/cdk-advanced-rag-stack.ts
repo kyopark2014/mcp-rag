@@ -239,7 +239,7 @@ export class CdkAdvancedRagStack extends cdk.Stack {
       capacity: {
         masterNodes: 1,
         masterNodeInstanceType: 'r6g.large.search',
-        dataNodes: 1,
+        dataNodes: 1,  // 단일 노드로 변경
         dataNodeInstanceType: 'r6g.large.search',        
         // warmNodes: 2,
         // warmInstanceType: 'ultrawarm1.medium.search',
@@ -252,6 +252,9 @@ export class CdkAdvancedRagStack extends cdk.Stack {
       nodeToNodeEncryption: true,
       encryptionAtRest: {
         enabled: true,
+      },
+      zoneAwareness: {
+        enabled: false,  // 단일 가용 영역으로 설정
       }
     });
     new cdk.CfnOutput(this, `Domain-of-OpenSearch-for-${projectName}`, {
