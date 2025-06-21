@@ -490,6 +490,77 @@ export class CdkAdvancedRagStack extends cdk.Stack {
       }, 
     });
 
+    // lambda-rag
+    const roleLambdaRag = new iam.Role(this, `role-lambda-rag-for-${projectName}`, {
+      roleName: `role-lambda-rag-for-${projectName}-${region}`,
+      assumedBy: new iam.CompositePrincipal(
+        new iam.ServicePrincipal("lambda.amazonaws.com"),
+        new iam.ServicePrincipal("bedrock.amazonaws.com"),
+      ),
+    });
+    const CreateLogPolicy = new iam.PolicyStatement({  
+      resources: [`arn:aws:logs:${region}:${accountId}:*`],
+      actions: ['logs:CreateLogGroup'],
+    });        
+    roleLambdaRag.attachInlinePolicy( 
+      new iam.Policy(this, `create-log-policy-lambda-rag-for-${projectName}`, {
+        statements: [CreateLogPolicy],
+      }),
+    );
+    const CreateLogStreamPolicy = new iam.PolicyStatement({  
+      resources: [`arn:aws:logs:${region}:${accountId}:log-group:/aws/lambda/*`],
+      actions: ["logs:CreateLogStream","logs:PutLogEvents"],
+    });        
+    roleLambdaRag.attachInlinePolicy( 
+      new iam.Policy(this, `create-stream-log-policy-lambda-rag-for-${projectName}`, {
+        statements: [CreateLogStreamPolicy],
+      }),
+    );      
+
+    // bedrock
+    roleLambdaRag.attachInlinePolicy( 
+      new iam.Policy(this, `tool-bedrock-invoke-policy-for-${projectName}`, {
+        statements: [bedrockInvokePolicy],
+      }),
+    );  
+    roleLambdaRag.attachInlinePolicy( 
+      new iam.Policy(this, `tool-bedrock-agent-opensearch-policy-for-${projectName}`, {
+        statements: [knowledgeBaseOpenSearchPolicy],
+      }),
+    );  
+
+    const knowledgeBaseBedrockPolicy = new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      resources: ['*'],
+      actions: ["bedrock:*"],
+    });
+    knowledge_base_role.attachInlinePolicy( 
+      new iam.Policy(this, `bedrock-agent-bedrock-policy-for-${projectName}`, {
+        statements: [knowledgeBaseBedrockPolicy],
+      }),
+    );  
+    roleLambdaRag.attachInlinePolicy( 
+      new iam.Policy(this, `tool-bedrock-agent-bedrock-policy-for-${projectName}`, {
+        statements: [knowledgeBaseBedrockPolicy],
+      }),
+    );  
+      
+    const lambdaRag = new lambda.DockerImageFunction(this, `lambda-rag-for-${projectName}`, {
+      description: 'RAG based on Knoeledge Base',
+      functionName: `lambda-rag-for-${projectName}`,
+      code: lambda.DockerImageCode.fromImageAsset(path.join(__dirname, '../../lambda-rag')),
+      timeout: cdk.Duration.seconds(120),
+      memorySize: 4096,
+      role: roleLambdaRag,
+      environment: {
+        bedrock_region: String(region),
+        projectName: projectName,
+        "sharing_url": 'https://'+distribution_sharing.domainName,
+      }
+    });     
+    
+    lambdaRag.grantInvoke(new cdk.aws_iam.ServicePrincipal("bedrock.amazonaws.com"));         
+
     const environment = {
       "projectName": projectName,
       "accountId": accountId,

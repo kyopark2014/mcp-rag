@@ -15,6 +15,9 @@ mode_descriptions = {
     "일상적인 대화": [
         "대화이력을 바탕으로 챗봇과 일상의 대화를 편안히 즐길수 있습니다."
     ],
+     "RAG": [
+        "Bedrock Knowledge Base를 이용해 구현한 RAG로 필요한 정보를 검색합니다."
+    ],
     "Agent": [
         "Agent를 이용해 다양한 툴을 사용할 수 있습니다. 여기에서는 날씨, 시간, 도서추천, 인터넷 검색을 제공합니다."
     ],
@@ -56,14 +59,8 @@ with st.sidebar:
     
     # radio selection
     mode = st.radio(
-        label="원하는 대화 형태를 선택하세요. ",options=["일상적인 대화", "Agent", 'Agent (Chat)', "번역하기 (한국어 / 영어)", "문법 검토하기", "이미지 분석", "카메라로 사진 찍어 번역하기", "비용 분석"], index=0
+        label="원하는 대화 형태를 선택하세요. ",options=["일상적인 대화", "RAG", "Agent", 'Agent (Chat)', "번역하기 (한국어 / 영어)", "문법 검토하기", "이미지 분석", "카메라로 사진 찍어 번역하기", "비용 분석"], index=1
     )   
-    # limit = st.slider(
-    #     label="Number of cards",
-    #     min_value=1,
-    #     max_value=mode_descriptions[mode][2],
-    #     value=6,
-    # )
 
     # model selection box
     if mode == '이미지 분석':
@@ -73,6 +70,10 @@ with st.sidebar:
     modelName = st.selectbox(
         '🖊️ 사용 모델을 선택하세요',
         ("Nova Premier", 'Nova Pro', 'Nova Lite', 'Nova Micro', "Claude 4 Sonnet", "Claude 4 Opus", 'Claude 3.7 Sonnet', 'Claude 3.5 Sonnet', 'Claude 3.0 Sonnet', 'Claude 3.5 Haiku'), index=index
+    )
+
+    rag_type = st.radio(
+        label="원하는 대화 형태를 선택하세요. ",options=["Knowledge Base", "Opensearch"], index=0
     )
     
     uploaded_file = None
@@ -297,6 +298,22 @@ if prompt := st.chat_input("메시지를 입력하세요."):
 
             chat.save_chat_history(prompt, response)
             # st.rerun()
+
+        elif mode == 'RAG':
+            with st.status("running...", expanded=True, state="running") as status:
+                if rag_type == "Knowledge Base":
+                    response, reference_docs = chat.run_rag_with_knowledge_base(prompt, st)                           
+                else:
+                    response, reference_docs = chat.run_rag_with_opensearch(prompt, st)
+                    
+                st.write(response)
+                logger.info(f"response: {response}")
+
+                st.session_state.messages.append({"role": "assistant", "content": response})
+
+                chat.save_chat_history(prompt, response)
+            
+            show_references(reference_docs) 
 
         elif mode == 'Agent':
             with st.status("thinking...", expanded=True, state="running") as status:
