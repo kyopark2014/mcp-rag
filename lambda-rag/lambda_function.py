@@ -300,6 +300,7 @@ def search_by_knowledge_base(keyword: str, top_k: int) -> str:
 
     if knowledge_base_id:    
         try:
+            print(f'Attempting to retrieve from knowledge base: {knowledge_base_id}')
             retriever = AmazonKnowledgeBasesRetriever(
                 knowledge_base_id=knowledge_base_id, 
                 retrieval_config={"vectorSearchConfiguration": {
@@ -352,9 +353,21 @@ def search_by_knowledge_base(keyword: str, top_k: int) -> str:
                     )
                 )    
 
-        except Exception:
+        except Exception as e:
             err_msg = traceback.format_exc()
-            print('error message: ', err_msg)    
+            print('error message: ', err_msg)
+            print('Exception type:', type(e).__name__)
+            print('Exception args:', e.args)
+            
+            # Check if it's a permission error
+            if '403' in str(e) or 'Forbidden' in str(e):
+                print('ERROR: Permission denied. Check IAM roles and policies.')
+            elif 'ValidationException' in str(e):
+                print('ERROR: Validation error. Check knowledge base configuration.')
+            else:
+                print('ERROR: Unexpected error during knowledge base retrieval.')
+    else:
+        print('ERROR: knowledge_base_id is not set. Cannot perform search.')
     
     return relevant_docs
 
@@ -398,13 +411,35 @@ def lambda_handler(event, context):
             
             if "knowledgeBaseSummaries" in response:
                 summaries = response["knowledgeBaseSummaries"]
+                print(f'Found {len(summaries)} knowledge bases')
                 for summary in summaries:
+                    print(f'Knowledge Base: {summary["name"]} (ID: {summary["knowledgeBaseId"]})')
                     if summary["name"] == knowledge_base_name:                        
                         knowledge_base_id = summary["knowledgeBaseId"]
                         print('knowledge_base_id: ', knowledge_base_id)
-        except Exception:
+                        break
+                
+                if not knowledge_base_id:
+                    print(f'ERROR: Knowledge base with name "{knowledge_base_name}" not found!')
+                    print('Available knowledge bases:')
+                    for summary in summaries:
+                        print(f'  - {summary["name"]}')
+            else:
+                print('ERROR: No knowledge bases found in response')
+                print('Response keys:', response.keys() if response else 'No response')
+                
+        except Exception as e:
             err_msg = traceback.format_exc()
-            print('error message: ', err_msg)    
+            print('error message: ', err_msg)
+            print('Exception type:', type(e).__name__)
+            print('Exception args:', e.args)
+    
+    if not knowledge_base_id:
+        print('ERROR: Could not retrieve knowledge_base_id. Cannot proceed with search.')
+        return {
+            'response': json.dumps([], ensure_ascii=False),
+            'error': 'Knowledge base not found or not accessible'
+        }
     
     docs = []
     if function == 'search_rag':

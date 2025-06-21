@@ -544,6 +544,22 @@ export class CdkAdvancedRagStack extends cdk.Stack {
         statements: [knowledgeBaseBedrockPolicy],
       }),
     );  
+
+    // Add Bedrock Agent permissions for Lambda RAG
+    const bedrockAgentPolicy = new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      resources: ['*'],
+      actions: [
+        "bedrock-agent:*",
+        "bedrock:ListKnowledgeBases",
+        "bedrock:Retrieve"
+      ],
+    });
+    roleLambdaRag.attachInlinePolicy( 
+      new iam.Policy(this, `bedrock-agent-policy-lambda-rag-for-${projectName}`, {
+        statements: [bedrockAgentPolicy],
+      }),
+    );
       
     const lambdaRag = new lambda.DockerImageFunction(this, `lambda-rag-for-${projectName}`, {
       description: 'RAG based on Knoeledge Base',
