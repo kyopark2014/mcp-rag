@@ -132,6 +132,84 @@ export class CdkAdvancedRagStack extends cdk.Stack {
       }),
     );  
 
+    // lambda-rag
+    const roleLambdaRag = new iam.Role(this, `role-lambda-rag-for-${projectName}`, {
+      roleName: `role-lambda-rag-for-${projectName}-${region}`,
+      assumedBy: new iam.CompositePrincipal(
+        new iam.ServicePrincipal("lambda.amazonaws.com"),
+        new iam.ServicePrincipal("bedrock.amazonaws.com"),
+      ),
+    });
+    const CreateLogPolicy = new iam.PolicyStatement({  
+      resources: [`arn:aws:logs:${region}:${accountId}:*`],
+      actions: ['logs:CreateLogGroup'],
+    });        
+    roleLambdaRag.attachInlinePolicy( 
+      new iam.Policy(this, `create-log-policy-lambda-rag-for-${projectName}`, {
+        statements: [CreateLogPolicy],
+      }),
+    );
+    const CreateLogStreamPolicy = new iam.PolicyStatement({  
+      resources: [`arn:aws:logs:${region}:${accountId}:log-group:/aws/lambda/*`],
+      actions: ["logs:CreateLogStream","logs:PutLogEvents"],
+    });        
+    roleLambdaRag.attachInlinePolicy( 
+      new iam.Policy(this, `create-stream-log-policy-lambda-rag-for-${projectName}`, {
+        statements: [CreateLogStreamPolicy],
+      }),
+    );      
+
+    // bedrock
+    roleLambdaRag.attachInlinePolicy( 
+      new iam.Policy(this, `tool-bedrock-invoke-policy-for-${projectName}`, {
+        statements: [bedrockInvokePolicy],
+      }),
+    );  
+    roleLambdaRag.attachInlinePolicy( 
+      new iam.Policy(this, `tool-bedrock-agent-opensearch-policy-for-${projectName}`, {
+        statements: [knowledgeBaseOpenSearchPolicy],
+      }),
+    );
+
+    const knowledgeBaseBedrockPolicy = new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      resources: ['*'],
+      actions: ["bedrock:*"],
+    });
+    knowledge_base_role.attachInlinePolicy( 
+      new iam.Policy(this, `bedrock-agent-bedrock-policy-for-${projectName}`, {
+        statements: [knowledgeBaseBedrockPolicy],
+      }),
+    );  
+    roleLambdaRag.attachInlinePolicy( 
+      new iam.Policy(this, `tool-bedrock-agent-bedrock-policy-for-${projectName}`, {
+        statements: [knowledgeBaseBedrockPolicy],
+      }),
+    );  
+
+    // Add Bedrock Agent permissions for Lambda RAG
+    const bedrockAgentPolicy = new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      resources: ['*'],
+      actions: [
+        "bedrock-agent:*",
+        "bedrock:ListKnowledgeBases",
+        "bedrock:Retrieve"
+      ],
+    });
+    roleLambdaRag.attachInlinePolicy( 
+      new iam.Policy(this, `bedrock-agent-policy-lambda-rag-for-${projectName}`, {
+        statements: [bedrockAgentPolicy],
+      }),
+    );
+
+    // Add Knowledge Base S3 permissions for Lambda RAG (same as knowledge_base_role)
+    roleLambdaRag.attachInlinePolicy( 
+      new iam.Policy(this, `knowledge-base-s3-policy-lambda-rag-for-${projectName}`, {
+        statements: [bedrockKnowledgeBaseS3Policy],
+      }),
+    );
+
     // OpenSearch Serverless
     const collectionName = vectorIndexName
     const OpenSearchCollection = new opensearchserverless.CfnCollection(this, `opensearch-correction-for-${projectName}`, {
@@ -212,7 +290,8 @@ export class CdkAdvancedRagStack extends cdk.Stack {
             }
           ],
           Principal: [
-            account.arn
+            account.arn,
+            roleLambdaRag.roleArn
           ], 
         },
       ]),
@@ -490,84 +569,6 @@ export class CdkAdvancedRagStack extends cdk.Stack {
       }, 
     });
 
-    // lambda-rag
-    const roleLambdaRag = new iam.Role(this, `role-lambda-rag-for-${projectName}`, {
-      roleName: `role-lambda-rag-for-${projectName}-${region}`,
-      assumedBy: new iam.CompositePrincipal(
-        new iam.ServicePrincipal("lambda.amazonaws.com"),
-        new iam.ServicePrincipal("bedrock.amazonaws.com"),
-      ),
-    });
-    const CreateLogPolicy = new iam.PolicyStatement({  
-      resources: [`arn:aws:logs:${region}:${accountId}:*`],
-      actions: ['logs:CreateLogGroup'],
-    });        
-    roleLambdaRag.attachInlinePolicy( 
-      new iam.Policy(this, `create-log-policy-lambda-rag-for-${projectName}`, {
-        statements: [CreateLogPolicy],
-      }),
-    );
-    const CreateLogStreamPolicy = new iam.PolicyStatement({  
-      resources: [`arn:aws:logs:${region}:${accountId}:log-group:/aws/lambda/*`],
-      actions: ["logs:CreateLogStream","logs:PutLogEvents"],
-    });        
-    roleLambdaRag.attachInlinePolicy( 
-      new iam.Policy(this, `create-stream-log-policy-lambda-rag-for-${projectName}`, {
-        statements: [CreateLogStreamPolicy],
-      }),
-    );      
-
-    // bedrock
-    roleLambdaRag.attachInlinePolicy( 
-      new iam.Policy(this, `tool-bedrock-invoke-policy-for-${projectName}`, {
-        statements: [bedrockInvokePolicy],
-      }),
-    );  
-    roleLambdaRag.attachInlinePolicy( 
-      new iam.Policy(this, `tool-bedrock-agent-opensearch-policy-for-${projectName}`, {
-        statements: [knowledgeBaseOpenSearchPolicy],
-      }),
-    );  
-
-    const knowledgeBaseBedrockPolicy = new iam.PolicyStatement({
-      effect: iam.Effect.ALLOW,
-      resources: ['*'],
-      actions: ["bedrock:*"],
-    });
-    knowledge_base_role.attachInlinePolicy( 
-      new iam.Policy(this, `bedrock-agent-bedrock-policy-for-${projectName}`, {
-        statements: [knowledgeBaseBedrockPolicy],
-      }),
-    );  
-    roleLambdaRag.attachInlinePolicy( 
-      new iam.Policy(this, `tool-bedrock-agent-bedrock-policy-for-${projectName}`, {
-        statements: [knowledgeBaseBedrockPolicy],
-      }),
-    );  
-
-    // Add Bedrock Agent permissions for Lambda RAG
-    const bedrockAgentPolicy = new iam.PolicyStatement({
-      effect: iam.Effect.ALLOW,
-      resources: ['*'],
-      actions: [
-        "bedrock-agent:*",
-        "bedrock:ListKnowledgeBases",
-        "bedrock:Retrieve"
-      ],
-    });
-    roleLambdaRag.attachInlinePolicy( 
-      new iam.Policy(this, `bedrock-agent-policy-lambda-rag-for-${projectName}`, {
-        statements: [bedrockAgentPolicy],
-      }),
-    );
-
-    // Add Knowledge Base S3 permissions for Lambda RAG (same as knowledge_base_role)
-    roleLambdaRag.attachInlinePolicy( 
-      new iam.Policy(this, `knowledge-base-s3-policy-lambda-rag-for-${projectName}`, {
-        statements: [bedrockKnowledgeBaseS3Policy],
-      }),
-    );
-      
     const lambdaRag = new lambda.DockerImageFunction(this, `lambda-rag-for-${projectName}`, {
       description: 'RAG based on Knoeledge Base',
       functionName: `lambda-rag-for-${projectName}`,
