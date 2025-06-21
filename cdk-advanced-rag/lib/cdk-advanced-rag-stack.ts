@@ -232,19 +232,16 @@ export class CdkAdvancedRagStack extends cdk.Stack {
 
     const domain = new opensearch.Domain(this, 'Domain', {
       version: opensearch.EngineVersion.OPENSEARCH_2_13,
-      
       domainName: domainName,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       enforceHttps: true,
       capacity: {
         masterNodes: 1,
         masterNodeInstanceType: 'r6g.large.search',
-        dataNodes: 1,  // 단일 노드로 변경
-        dataNodeInstanceType: 'r6g.large.search',        
-        // warmNodes: 2,
-        // warmInstanceType: 'ultrawarm1.medium.search',
+        dataNodes: 1,
+        dataNodeInstanceType: 'r6g.large.search',
       },
-      accessPolicies: [OpenSearchAccessPolicy],      
+      accessPolicies: [OpenSearchAccessPolicy],
       ebs: {
         volumeSize: 100,
         volumeType: ec2.EbsDeviceVolumeType.GP3,
@@ -254,7 +251,7 @@ export class CdkAdvancedRagStack extends cdk.Stack {
         enabled: true,
       },
       zoneAwareness: {
-        enabled: false,  // 단일 가용 영역으로 설정
+        enabled: false,
       }
     });
     new cdk.CfnOutput(this, `Domain-of-OpenSearch-for-${projectName}`, {
