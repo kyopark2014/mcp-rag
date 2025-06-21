@@ -430,6 +430,7 @@ def lambda_handler(event, context):
                 print('Response keys:', response.keys() if response else 'No response')
                 
         except Exception as e:
+            knowledge_base_id = ""
             err_msg = traceback.format_exc()
             print('error message: ', err_msg)
             print('Exception type:', type(e).__name__)

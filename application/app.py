@@ -114,7 +114,7 @@ with st.sidebar:
     # logger.info(f"gradingMode: {gradingMode}")
 
     # ocr mode
-    select_ocr = st.checkbox('OCR', value=False)
+    select_ocr = st.checkbox('OCR', value=True)
     ocr = 'Enable' if select_ocr else 'Disable'
     
     # contextual embedding
