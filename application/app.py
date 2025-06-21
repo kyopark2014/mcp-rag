@@ -108,6 +108,11 @@ with st.sidebar:
     reasoningMode = 'Enable' if select_reasoning else 'Disable'
     # logger.info(f"reasoningMode: {reasoningMode}")
 
+     # RAG grading
+    select_grading = st.checkbox('Grading', value=False)
+    gradingMode = 'Enable' if select_grading else 'Disable'
+    # logger.info(f"gradingMode: {gradingMode}")
+
     # ocr mode
     select_ocr = st.checkbox('OCR', value=False)
     ocr = 'Enable' if select_ocr else 'Disable'
@@ -125,13 +130,12 @@ with st.sidebar:
     st.subheader("📋 문서 업로드")
     uploaded_file = st.file_uploader("RAG를 위한 파일을 선택합니다.", type=["pdf", "txt", "py", "md", "csv", "json"], key=chat.fileId)
    
-    gradingMode = 'Disable'
     mcp = {}
     if mode=='Agent' or mode=='Agent (Chat)':
         st.subheader("⚙️ MCP Config")
 
         mcp_options = [ 
-            "basic", "Knowledge Base (Lambda)", "Knowledge Base (Custom)", "OpenSearch", "사용자 설정"
+            "basic", "Knowledge Base (Lambda)", "Knowledge Base (Custom)", "OpenSearch (Lambda)", "OpenSearch", "사용자 설정"
         ]
         mcp_selections = {}
         default_selections = ["basic"]

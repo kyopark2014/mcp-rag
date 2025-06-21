@@ -66,6 +66,18 @@ def load_config(mcp_type):
             }
         }
     
+    elif mcp_type == "OpenSearch_lambda":
+        return {
+            "mcpServers": {
+                "OpenSearch_lambda": {
+                    "command": "python",
+                    "args": [
+                        "application/mcp_server_lambda_opensearch.py"
+                    ]
+                }
+            }
+        }
+
     elif mcp_type == "OpenSearch":
         return {
             "mcpServers": {
@@ -101,6 +113,10 @@ def load_selected_config(mcp_selections: dict[str, bool]):
             config = load_config('knowledge_base_lambda')
         elif server == "Knowledge Base (Custom)":
             config = load_config('knowledge_base_custom')
+        elif server == "OpenSearch (Lambda)":
+            config = load_config('OpenSearch_lambda')
+        elif server == "OpenSearch":
+            config = load_config('OpenSearch')
         else:
             config = load_config(server)
         logger.info(f"config: {config}")

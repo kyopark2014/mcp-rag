@@ -1,8 +1,7 @@
 import logging
 import sys
-import mcp_knowledge_base as rag
+import mcp_opensearch as rag
 
-from typing import Dict, Optional, Any
 from mcp.server.fastmcp import FastMCP 
 
 logging.basicConfig(
@@ -31,7 +30,7 @@ except Exception as e:
 # RAG
 ######################################
 @mcp.tool()
-def rag_search(keyword: str) -> str:
+def opensearch_search(keyword: str) -> str:
     """
     Search the knowledge base with the given keyword.
     keyword: the keyword to search
@@ -39,7 +38,9 @@ def rag_search(keyword: str) -> str:
     """
     logger.info(f"search --> keyword: {keyword}")
 
-    return rag.retrieve_knowledge_base(keyword)
+    result = rag.retrieve_opensearch(keyword)
+    logger.info(f"result: {result}")
+    return result
 
 if __name__ =="__main__":
     print(f"###### main ######")

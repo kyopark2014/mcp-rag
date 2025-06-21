@@ -117,7 +117,7 @@ export class CdkAdvancedRagStack extends cdk.Stack {
       actions: ["s3:*"],
     });
     roleKnowledgeBase.attachInlinePolicy( 
-      new iam.Policy(this, `knowledge-base-s3-policy-for-${projectName}`, {
+      new iam.Policy(this, `s3-policy-knowledge-base-for-${projectName}`, {
         statements: [bedrockKnowledgeBaseS3Policy],
       }),
     );      
@@ -127,7 +127,7 @@ export class CdkAdvancedRagStack extends cdk.Stack {
       actions: ["aoss:APIAccessAll"],
     });
     roleKnowledgeBase.attachInlinePolicy( 
-      new iam.Policy(this, `AOSS-opensearch-policy-for-${projectName}`, {
+      new iam.Policy(this, `aoss-knowledge-base-policy-for-${projectName}`, {
         statements: [knowledgeBaseOpenSearchPolicy],
       }),
     );  
@@ -177,19 +177,19 @@ export class CdkAdvancedRagStack extends cdk.Stack {
       actions: ["bedrock:*"],
     });
     roleKnowledgeBase.attachInlinePolicy( 
-      new iam.Policy(this, `bedrock-agent-bedrock-policy-for-${projectName}`, {
+      new iam.Policy(this, `bedrock-policy-knowledge-base-for-${projectName}`, {
         statements: [knowledgeBaseBedrockPolicy],
       }),
     );  
     roleLambdaKnowledgeBase.attachInlinePolicy( 
-      new iam.Policy(this, `tool-bedrock-agent-bedrock-policy-for-${projectName}`, {
+      new iam.Policy(this, `bedrock-policy-lambda-knowledge-base-for-${projectName}`, {
         statements: [knowledgeBaseBedrockPolicy],
       }),
     );  
 
     // Add Knowledge Base S3 permissions for Lambda RAG (same as roleKnowledgeBase)
     roleLambdaKnowledgeBase.attachInlinePolicy( 
-      new iam.Policy(this, `knowledge-base-s3-policy-lambda-rag-for-${projectName}`, {
+      new iam.Policy(this, `s3-policy-lambda-knowledge-base-for-${projectName}`, {
         statements: [bedrockKnowledgeBaseS3Policy],
       }),
     );

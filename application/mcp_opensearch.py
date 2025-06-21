@@ -37,7 +37,6 @@ print(f"region: {region}")
 
 numberOfDocs = 3
 model_name = "Claude 3.5 Haiku"
-knowledge_base_name = projectName
 
 def retrieve_opensearch(query):
     lambda_client = boto3.client(
@@ -57,7 +56,6 @@ def retrieve_opensearch(query):
     try:
         payload = {
             'function': 'search_rag',
-            'knowledge_base_name': knowledge_base_name,
             'keyword': query,
             'top_k': numberOfDocs,
             'grading': grading_mode,

@@ -31,7 +31,7 @@ except Exception as e:
 # RAG
 ######################################
 @mcp.tool()
-def rag_search(keyword: str) -> str:
+def knowledge_base_search(keyword: str) -> str:
     """
     Search the knowledge base with the given keyword.
     keyword: the keyword to search
@@ -39,7 +39,9 @@ def rag_search(keyword: str) -> str:
     """
     logger.info(f"search --> keyword: {keyword}")
 
-    return rag.retrieve_knowledge_base(keyword)
+    result = rag.retrieve_knowledge_base(keyword)
+    logger.info(f"result: {result}")
+    return result
 
 if __name__ =="__main__":
     print(f"###### main ######")
