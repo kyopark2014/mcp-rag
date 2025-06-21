@@ -591,7 +591,7 @@ def store_image_for_opensearch(key):
         return []
 
 def is_not_exist(index_name):    
-    if os_client.indices.exists(index_name):        
+    if os_client.indices.exists(index=index_name):        
         print('use exist index: ', index_name)    
         return False
     else:
@@ -662,7 +662,7 @@ def create_nori_index():
     if(is_not_exist(index_name)):
         try: # create index
             response = os_client.indices.create(
-                index_name,
+                index=index_name,
                 body=index_body
             )
             print('index was created with nori plugin:', response)
