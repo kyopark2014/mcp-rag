@@ -578,11 +578,11 @@ export class CdkAdvancedRagStack extends cdk.Stack {
       memorySize: 4096,
       role: roleLambdaKnowledgeBase,
       environment: {
-        bedrock_region: String(region),
+        bedrock_region: String(region),  
         projectName: projectName,
         "sharing_url": 'https://'+distribution_sharing.domainName,
       }
-    });         
+    });
     lambdaRagKnowledgeBase.grantInvoke(new cdk.aws_iam.ServicePrincipal("bedrock.amazonaws.com"));         
 
     const environment = {
