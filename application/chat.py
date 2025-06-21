@@ -11,7 +11,7 @@ import PyPDF2
 import csv
 import utils
 import agent
-import rag_opensearch as rag
+import opensearch as rag
 
 from io import BytesIO
 from PIL import Image

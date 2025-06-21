@@ -1,6 +1,5 @@
 import utils
 import chat
-import json
 import boto3
 
 from langchain_community.vectorstores.opensearch_vector_search import OpenSearchVectorSearch

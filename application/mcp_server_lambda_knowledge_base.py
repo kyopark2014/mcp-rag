@@ -1,6 +1,6 @@
 import logging
 import sys
-import application.mcp_knowledge_base as rag
+import mcp_knowledge_base as rag
 
 from typing import Dict, Optional, Any
 from mcp.server.fastmcp import FastMCP 
