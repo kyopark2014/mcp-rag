@@ -31,7 +31,7 @@ except Exception as e:
 # RAG
 ######################################
 @mcp.tool()
-def knowledge_base_search(keyword: str) -> str:
+def knowledge_base_search(keyword: str) -> list:
     """
     Search the knowledge base with the given keyword.
     keyword: the keyword to search

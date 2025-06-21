@@ -111,14 +111,14 @@ export class CdkAdvancedRagStack extends cdk.Stack {
       }),
     );  
     
-    const bedrockKnowledgeBaseS3Policy = new iam.PolicyStatement({
+    const S3Policy = new iam.PolicyStatement({
       effect: iam.Effect.ALLOW,
       resources: ['*'],
       actions: ["s3:*"],
     });
     roleKnowledgeBase.attachInlinePolicy( 
       new iam.Policy(this, `s3-policy-knowledge-base-for-${projectName}`, {
-        statements: [bedrockKnowledgeBaseS3Policy],
+        statements: [S3Policy],
       }),
     );      
     const knowledgeBaseOpenSearchPolicy = new iam.PolicyStatement({
@@ -186,11 +186,9 @@ export class CdkAdvancedRagStack extends cdk.Stack {
         statements: [knowledgeBaseBedrockPolicy],
       }),
     );  
-
-    // Add Knowledge Base S3 permissions for Lambda RAG (same as roleKnowledgeBase)
     roleLambdaKnowledgeBase.attachInlinePolicy( 
       new iam.Policy(this, `s3-policy-lambda-knowledge-base-for-${projectName}`, {
-        statements: [bedrockKnowledgeBaseS3Policy],
+        statements: [S3Policy],
       }),
     );
 
@@ -589,7 +587,12 @@ export class CdkAdvancedRagStack extends cdk.Stack {
       new iam.Policy(this, `opensearch-policy-lambda-opensearch-for-${projectName}`, {
         statements: [openSearchPolicy],
       }),
-    );
+    );    
+    roleLambdaOpenSearch.attachInlinePolicy( 
+      new iam.Policy(this, `s3-policy-lambda-opensearch-for-${projectName}`, {
+        statements: [S3Policy],
+      }),
+    );    
 
     // Lambda for opensearch
     const lambdaOpenSearch = new lambda.DockerImageFunction(this, `opensearch-for-${projectName}`, {
