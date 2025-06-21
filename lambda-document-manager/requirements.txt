@@ -1,0 +1,13 @@
+boto3
+botocore
+python-docx
+PyMuPDF
+Pillow
+langchain-aws
+langchain-community
+langchain
+langchain-core
+opensearch-py
+python-pptx
+pypdf
+requests-aws4auth

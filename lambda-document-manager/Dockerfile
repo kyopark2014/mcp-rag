@@ -1,17 +1,19 @@
-FROM amazon/aws-lambda-python:3.11
+FROM amazon/aws-lambda-python:3.13
 
-WORKDIR /var/task/lambda-chat
+WORKDIR /var/task
 
-COPY lambda_function.py /var/task/
-COPY . ..
+# Copy requirements first for better caching
+COPY requirements.txt /var/task/
 
-RUN /var/lang/bin/python3 -m pip install langchain
-RUN /var/lang/bin/python3 -m pip install langchain-community
-RUN /var/lang/bin/python3 -m pip install langchain-aws
-RUN /var/lang/bin/python3 -m pip install opensearch-py
-RUN /var/lang/bin/python3 -m pip install pypdf
+# Install dependencies with specific versions and upgrade pip first
+RUN /var/lang/bin/python3 -m pip install --upgrade pip
+RUN /var/lang/bin/python3 -m pip install -r requirements.txt
+
+# Install additional packages that might not be in requirements.txt
 RUN /var/lang/bin/python3 -m pip install PyMuPDF
 RUN /var/lang/bin/python3 -m pip install pycryptodome
-RUN /var/lang/bin/python3 -m pip install python-pptx
-RUN /var/lang/bin/python3 -m pip install python-docx
+
+# Copy function code
+COPY lambda_function.py /var/task/
+
 CMD ["lambda_function.lambda_handler"]
