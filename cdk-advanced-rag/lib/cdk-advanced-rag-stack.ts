@@ -238,11 +238,11 @@ export class CdkAdvancedRagStack extends cdk.Stack {
       capacity: {
         // Single node configuration for development - using only data nodes without master nodes
         dataNodes: 1,
-        dataNodeInstanceType: 't3.small.search', // Smaller instance type for development
+        dataNodeInstanceType: 'r6g.large.search', // R6g instance type for better compatibility
       },
       accessPolicies: [OpenSearchAccessPolicy],
       ebs: {
-        volumeSize: 20, // Smaller volume size for development
+        volumeSize: 100, // Volume size for development
         volumeType: ec2.EbsDeviceVolumeType.GP3,
       },
       nodeToNodeEncryption: true,
