@@ -127,7 +127,7 @@ export class CdkAdvancedRagStack extends cdk.Stack {
       actions: ["aoss:APIAccessAll"],
     });
     roleKnowledgeBase.attachInlinePolicy( 
-      new iam.Policy(this, `bedrock-agent-opensearch-policy-for-${projectName}`, {
+      new iam.Policy(this, `AOSS-opensearch-policy-for-${projectName}`, {
         statements: [knowledgeBaseOpenSearchPolicy],
       }),
     );  
