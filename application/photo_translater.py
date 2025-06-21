@@ -10,7 +10,7 @@ logger = utils.CreateLogger("streamlit")
 def take_photo(st):
     st.title("📸 카메라로 사진 찍기")
     
-    # 카메라 입력 위젯
+    # Camera input widget
     camera_input = st.camera_input("사진을 찍어주세요")
     
     if camera_input is not None:

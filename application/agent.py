@@ -13,7 +13,7 @@ from langgraph.graph.message import add_messages
 from langchain_core.prompts import MessagesPlaceholder, ChatPromptTemplate
 from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
 
-# UTF-8로 인코딩된 stderr 스트림 생성
+# Create UTF-8 encoded stderr stream
 utf8_stderr = codecs.getwriter('utf-8')(sys.stderr.buffer)
 
 logging.basicConfig(

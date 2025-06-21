@@ -51,8 +51,8 @@ ocr = "Disable"
 model_name = "default"
 multi_region = 'Disable'
 
-# AWS region 설정
-region = os.environ.get('AWS_REGION', 'us-west-2')  # 기본값으로 us-west-2 사용
+# AWS region configuration
+region = os.environ.get('AWS_REGION', 'us-west-2')  # Default to us-west-2
 
 def get_model_info(model):
     global model_name, selected_model
@@ -1824,6 +1824,14 @@ def get_metadata(info):
 # load csv documents from s3
 def lambda_handler(event, context):
     print('event: ', event)    
+    
+    # Create index if hybrid search is enabled
+    if enableHybridSearch == 'true':
+        try:
+            create_nori_index()
+        except Exception as e:
+            print(f"Error occurred while creating index: {e}")
+            # Continue processing even if index creation fails
     
     documentIds = []
     for record in event['Records']:

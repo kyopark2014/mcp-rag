@@ -340,12 +340,6 @@ if prompt := st.chat_input("메시지를 입력하세요."):
             st.session_state.messages.append({"role": "assistant", "content": response})
             # chat.save_chat_history(prompt, response)
         
-        # elif mode == '번역하기 (일본어 / 한국어)':
-        #     response = chat.translate_text_for_japanese(prompt, modelName, st)
-        #     st.write(response)
-
-        #     st.session_state.messages.append({"role": "assistant", "content": response})
-
         elif mode == '문법 검토하기':
             response = chat.check_grammer(prompt, modelName, st)
             st.write(response)
