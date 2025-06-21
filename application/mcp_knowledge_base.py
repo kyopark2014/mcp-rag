@@ -45,7 +45,7 @@ def retrieve_knowledge_base(query):
         region_name=bedrock_region
     )
 
-    functionName = f"lambda-rag-for-{projectName}"
+    functionName = f"knowledge-base-for-{projectName}"
     print(f"functionName: {functionName}")
 
     mcp_env = utils.load_mcp_env()

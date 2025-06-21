@@ -184,13 +184,13 @@ def load_config(mcp_type):
             }
         }
     
-    elif mcp_type == "aws_rag":
+    elif mcp_type == "aws_knowledge_base_lambda":
         return {
             "mcpServers": {
                 "aws_storage": {
                     "command": "python",
                     "args": [
-                        "application/mcp_server_rag.py"
+                        "application/mcp_server_knowledge_base.py"
                     ]
                 }
             }

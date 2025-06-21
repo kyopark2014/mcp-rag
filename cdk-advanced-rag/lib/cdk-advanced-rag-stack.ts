@@ -435,9 +435,9 @@ export class CdkAdvancedRagStack extends cdk.Stack {
     });
     lambdaS3eventManager.addEventSource(s3PutEventSourceCaptures); 
 
-    // Lambda - chat (websocket)
-    const roleLambdaDocument = new iam.Role(this, `role-lambda-chat-ws-for-${projectName}`, {
-      roleName: `role-lambda-chat-ws-for-${projectName}-${region}`,
+    // Lambda 
+    const roleLambdaDocument = new iam.Role(this, `role-lambda-document-for-${projectName}`, {
+      roleName: `role-lambda-document-for-${projectName}-${region}`,
       assumedBy: new iam.CompositePrincipal(
         new iam.ServicePrincipal("lambda.amazonaws.com"),
         new iam.ServicePrincipal("bedrock.amazonaws.com"),
@@ -451,7 +451,7 @@ export class CdkAdvancedRagStack extends cdk.Stack {
       actions: ['bedrock:*'],
     });        
     roleLambdaDocument.attachInlinePolicy( // add bedrock policy
-      new iam.Policy(this, `bedrock-policy-lambda-chat-ws-for-${projectName}`, {
+      new iam.Policy(this, `bedrock-policy-lambda-document-for-${projectName}`, {
         statements: [BedrockPolicy],
       }),
     );        
