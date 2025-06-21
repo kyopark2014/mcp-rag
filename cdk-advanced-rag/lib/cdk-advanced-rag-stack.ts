@@ -230,39 +230,53 @@ export class CdkAdvancedRagStack extends cdk.Stack {
       principals: [new iam.AccountPrincipal(this.account)],      
     });
 
-    const domain = new opensearch.Domain(this, 'Domain', {
-      version: opensearch.EngineVersion.OPENSEARCH_2_13,
+    // Use CfnDomain (L1 construct) for more granular control over OpenSearch configuration
+    const domain = new opensearch.CfnDomain(this, 'Domain', {
+      engineVersion: 'OpenSearch_2.13',
       domainName: domainName,
-      removalPolicy: cdk.RemovalPolicy.DESTROY,
-      enforceHttps: true,
-      capacity: {
-        // Multi-AZ configuration with minimum 2 nodes for development
-        dataNodes: 2,
-        dataNodeInstanceType: 'r6g.large.search', // R6g instance type for better compatibility
+      clusterConfig: {
+        instanceType: 'r6g.large.search',
+        instanceCount: 1,
+        dedicatedMasterEnabled: false,
+        zoneAwarenessEnabled: false,
       },
-      accessPolicies: [OpenSearchAccessPolicy],
-      ebs: {
-        volumeSize: 100, // Volume size for development
-        volumeType: ec2.EbsDeviceVolumeType.GP3,
+      ebsOptions: {
+        ebsEnabled: true,
+        volumeType: 'gp3',
+        volumeSize: 100,
       },
-      nodeToNodeEncryption: true,
-      encryptionAtRest: {
+      nodeToNodeEncryptionOptions: {
         enabled: true,
       },
-      zoneAwareness: {
-        enabled: true, // Enable zone awareness for multi-AZ
-        availabilityZoneCount: 2, // Use 2 availability zones
-      }
+      encryptionAtRestOptions: {
+        enabled: true,
+      },
+      domainEndpointOptions: {
+        enforceHttps: true,
+      },
+      accessPolicies: {
+        Version: '2012-10-17',
+        Statement: [
+          {
+            Effect: 'Allow',
+            Principal: {
+              AWS: `arn:aws:iam::${this.account}:root`,
+            },
+            Action: 'es:*',
+            Resource: `arn:aws:es:${this.region}:${this.account}:domain/${domainName}/*`,
+          },
+        ],
+      },
     });
     new cdk.CfnOutput(this, `Domain-of-OpenSearch-for-${projectName}`, {
-      value: domain.domainArn,
-      description: 'The arm of OpenSearch Domain',
+      value: domain.attrArn,
+      description: 'The arn of OpenSearch Domain',
     });
     new cdk.CfnOutput(this, `Endpoint-of-OpenSearch-for-${projectName}`, {
-      value: 'https://'+domain.domainEndpoint,
+      value: 'https://'+domain.attrDomainEndpoint,
       description: 'The endpoint of OpenSearch Domain',
     });
-    opensearch_url = 'https://'+domain.domainEndpoint;
+    opensearch_url = 'https://'+domain.attrDomainEndpoint;
 
     // S3 - Lambda(S3 event) - SQS(fifo) - Lambda(document)
     // DLQ
