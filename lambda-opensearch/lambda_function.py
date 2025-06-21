@@ -567,6 +567,9 @@ def lambda_handler(event, context):
     multi_region = event.get('multi_region')
     print('multi_region: ', multi_region)
 
+    global contentList
+    contentList = []
+
     docs = []
     if function == 'search_rag':
         print('keyword: ', keyword)        

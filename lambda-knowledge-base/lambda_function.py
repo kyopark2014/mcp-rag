@@ -397,6 +397,9 @@ def lambda_handler(event, context):
     multi_region = event.get('multi_region')
     print('multi_region: ', multi_region)
 
+    global contentList
+    contentList = []
+
     global knowledge_base_id
     # retrieve knowledge_base_id
     if not knowledge_base_id:
