@@ -236,8 +236,8 @@ export class CdkAdvancedRagStack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       enforceHttps: true,
       capacity: {
-        // Single node configuration for development - using only data nodes without master nodes
-        dataNodes: 1,
+        // Multi-AZ configuration with minimum 2 nodes for development
+        dataNodes: 2,
         dataNodeInstanceType: 'r6g.large.search', // R6g instance type for better compatibility
       },
       accessPolicies: [OpenSearchAccessPolicy],
@@ -250,7 +250,8 @@ export class CdkAdvancedRagStack extends cdk.Stack {
         enabled: true,
       },
       zoneAwareness: {
-        enabled: false, // Disable zone awareness for single node
+        enabled: true, // Enable zone awareness for multi-AZ
+        availabilityZoneCount: 2, // Use 2 availability zones
       }
     });
     new cdk.CfnOutput(this, `Domain-of-OpenSearch-for-${projectName}`, {
