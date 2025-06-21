@@ -350,7 +350,7 @@ export class CdkAdvancedRagStack extends cdk.Stack {
         s3.EventType.OBJECT_CREATED_COMPLETE_MULTIPART_UPLOAD
       ],
       filters: [
-        { prefix: s3_capture_prefix+'/' }
+        { prefix: s3_capture_prefix+'/' } 
       ]
     });
     lambdaS3eventManager.addEventSource(s3PutEventSourceCaptures); 
