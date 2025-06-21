@@ -238,20 +238,18 @@ export class CdkAdvancedRagStack extends cdk.Stack {
       capacity: {
         // Single node configuration for development - using only data nodes without master nodes
         dataNodes: 1,
-        dataNodeInstanceType: 'r6g.large.search', // Smaller instance type for development
+        dataNodeInstanceType: 't3.small.search', // Smaller instance type for development
       },
       accessPolicies: [OpenSearchAccessPolicy],
       ebs: {
-        volumeSize: 100, // Smaller volume size for development
+        volumeSize: 20, // Smaller volume size for development
         volumeType: ec2.EbsDeviceVolumeType.GP3,
       },
       nodeToNodeEncryption: true,
       encryptionAtRest: {
         enabled: true,
-      },
-      zoneAwareness: {
-        enabled: false,
       }
+      // Remove zoneAwareness configuration - defaults to disabled for single node
     });
     new cdk.CfnOutput(this, `Domain-of-OpenSearch-for-${projectName}`, {
       value: domain.domainArn,
