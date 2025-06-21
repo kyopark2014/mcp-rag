@@ -373,6 +373,24 @@ export class CdkAdvancedRagStack extends cdk.Stack {
       }),
     );
 
+    // OpenSearch Policy for Lambda
+    const openSearchPolicy = new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      resources: [resourceArn],
+      actions: [
+        "es:ESHttpGet",
+        "es:ESHttpPut", 
+        "es:ESHttpPost",
+        "es:ESHttpDelete",
+        "es:ESHttpHead"
+      ],
+    });
+    roleLambdaDocument.attachInlinePolicy(
+      new iam.Policy(this, `opensearch-policy-lambda-for-${projectName}`, {
+        statements: [openSearchPolicy],
+      }),
+    );
+
     // Lambda for document manager
     let lambdDocumentManager:any[] = [];
     for(let i=0;i<LLM_embedding.length;i++) {
