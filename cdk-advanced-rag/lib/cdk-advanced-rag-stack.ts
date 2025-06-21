@@ -361,7 +361,7 @@ export class CdkAdvancedRagStack extends cdk.Stack {
 
     // S3 - Lambda(S3 event) - SQS(fifo) - Lambda(document)
     // DLQ
-    let dlq:any[] = [];
+ /*   let dlq:any[] = [];
     for(let i=0;i<LLM_embedding.length;i++) {
       dlq[i] = new sqs.Queue(this, 'DlqS3EventFifo'+i, {
         visibilityTimeout: cdk.Duration.seconds(900),
@@ -601,6 +601,6 @@ export class CdkAdvancedRagStack extends cdk.Stack {
       value: JSON.stringify(environment),
       description: `environment-${projectName}`,
       exportName: `environment-${projectName}`
-    });    
+    });    */
   }
 }
