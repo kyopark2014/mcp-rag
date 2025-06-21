@@ -569,7 +569,7 @@ export class CdkAdvancedRagStack extends cdk.Stack {
         langsmith_api_key: cdk.SecretValue.unsafePlainText(''),
       }, 
     });
-/*
+
     const lambdaRagKnowledgeBase = new lambda.DockerImageFunction(this, `knowledge-base-for-${projectName}`, {
       description: 'RAG based on Knoeledge Base',
       functionName: `knowledge-base-for-${projectName}`,
@@ -584,7 +584,7 @@ export class CdkAdvancedRagStack extends cdk.Stack {
       }
     });         
     lambdaRagKnowledgeBase.grantInvoke(new cdk.aws_iam.ServicePrincipal("bedrock.amazonaws.com"));         
-*/
+
     const environment = {
       "projectName": projectName,
       "accountId": accountId,
