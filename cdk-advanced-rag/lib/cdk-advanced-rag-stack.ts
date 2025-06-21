@@ -291,7 +291,8 @@ export class CdkAdvancedRagStack extends cdk.Stack {
           ],
           Principal: [
             account.arn,
-            roleLambdaRag.roleArn
+            roleLambdaRag.roleArn,
+            knowledge_base_role.roleArn
           ], 
         },
       ]),
