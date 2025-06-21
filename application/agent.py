@@ -4,6 +4,7 @@ import json
 import traceback
 import chat
 import codecs
+import utils
 
 from langgraph.prebuilt import ToolNode
 from typing import Literal
@@ -24,6 +25,11 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger("agent")
+
+config = utils.load_config()
+sharing_url = config["sharing_url"] if "sharing_url" in config else None
+s3_prefix = "docs"
+capture_prefix = "captures"
 
 status_msg = []
 def get_status_msg(status):
@@ -136,8 +142,7 @@ async def call_model(state: State, config):
                     json_data = json_objects
                 else:
                     # Try original method
-                    json_data = json.loads(tool_content)
-                
+                    json_data = json.loads(tool_content)                
                 # logger.info(f"json_data: {json_data}")
 
                 # Build content
@@ -152,24 +157,19 @@ async def call_model(state: State, config):
                                 if "s3Location" in item["location"]:
                                     uri = item["location"]["s3Location"]["uri"]
                                     # logger.info(f"uri (list): {uri}")
+                                    ext = uri.split(".")[-1]
+
+                                    # ext가 이미지라면 
+                                    url = sharing_url + "/" + s3_prefix + "/" + uri.split("/")[-1]
+                                    if ext in ["jpg", "jpeg", "png", "gif", "bmp", "tiff", "ico", "webp"]:
+                                        url = sharing_url + "/" + capture_prefix + "/" + uri.split("/")[-1]
+                                    logger.info(f"url: {url}")
+                                    
                                     references.append({
-                                        "url": uri, 
+                                        "url": url, 
                                         "title": uri.split("/")[-1],
                                         "content": content_text[:100] + "..." if len(content_text) > 100 else content_text
-                                    })
-                elif isinstance(json_data, dict) and "content" in json_data:
-                    content_text = json_data["content"].get("text", "")
-                    content += content_text + "\n\n"
-                    uri = "" 
-                    if "location" in item:
-                        if "s3Location" in item["location"]:
-                            uri = item["location"]["s3Location"]["uri"]
-                            # logger.info(f"uri (dict): {uri}")
-                            references.append({
-                                "url": uri, 
-                                "title": uri.split("/")[-1],
-                                "content": content_text[:100] + "..." if len(content_text) > 100 else content_text
-                            })                
+                                    })          
                     
             except json.JSONDecodeError as e:
                 logger.info(f"JSON parsing error: {e}")
