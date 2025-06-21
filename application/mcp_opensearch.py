@@ -19,10 +19,10 @@ def load_config():
     try:
         with open("application/config.json", "r", encoding="utf-8") as f:
             config = json.load(f)
-            # print(f"config: {config}")
+            # logger.info(f"config: {config}")
     except Exception:
         err_msg = traceback.format_exc()
-        print(f"error message: {err_msg}")    
+        logger.info(f"error message: {err_msg}")    
     return config
 
 config = load_config()
@@ -33,7 +33,7 @@ accountId = config["accountId"] if "accountId" in config else None
 if accountId is None:
     raise Exception ("No accountId")
 region = config["region"] if "region" in config else "us-west-2"
-print(f"region: {region}")
+logger.info(f"region: {region}")
 
 numberOfDocs = 3
 model_name = "Claude 3.5 Haiku"
@@ -45,7 +45,7 @@ def retrieve_opensearch(query):
     )
 
     functionName = f"opensearch-for-{projectName}"
-    print(f"functionName: {functionName}")
+    logger.info(f"functionName: {functionName}")
 
     mcp_env = utils.load_mcp_env()
     grading_mode = mcp_env['grading_mode']
@@ -62,17 +62,17 @@ def retrieve_opensearch(query):
             'model_name': model_name,
             'multi_region': multi_region
         }
-        print(f"payload: {payload}")
+        logger.info(f"payload: {payload}")
 
         output = lambda_client.invoke(
             FunctionName=functionName,
             Payload=json.dumps(payload),
         )
         payload = json.load(output['Payload'])
-        print(f"response: {payload['response']}")
+        logger.info(f"response: {payload['response']}")
         
     except Exception:
         err_msg = traceback.format_exc()
-        print(f"error message: {err_msg}")       
+        logger.info(f"error message: {err_msg}")       
 
     return payload['response']

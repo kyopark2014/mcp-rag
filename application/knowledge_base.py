@@ -347,7 +347,7 @@ def retrieve_documents_from_knowledge_base(query, top_k):
         
         try: 
             documents = retriever.invoke(query)
-            # print('documents: ', documents)
+            # logger.info('documents: ', documents)
             logger.info(f"--> docs from knowledge base")
             for i, doc in enumerate(documents):
                 print_doc(i, doc)
@@ -368,11 +368,11 @@ def retrieve_documents_from_knowledge_base(query, top_k):
             if "s3Location" in doc.metadata["location"]:
                 link = doc.metadata["location"]["s3Location"]["uri"] if doc.metadata["location"]["s3Location"]["uri"] is not None else ""
                 
-                # print('link:', link)    
+                # logger.info('link:', link)    
                 pos = link.find(f"/{doc_prefix}")
                 name = link[pos+len(doc_prefix)+1:]
                 encoded_name = parse.quote(name)
-                # print('name:', name)
+                # logger.info('name:', name)
                 link = f"{path}/{doc_prefix}{encoded_name}"
                 
             elif "webLocation" in doc.metadata["location"]:

@@ -237,6 +237,7 @@ async def call_model(state: State, config):
         chain = prompt | model
             
         response = await chain.ainvoke(state["messages"])
+        logger.info(f"response of call_model: {response}")
 
     except Exception:
         response = AIMessage(content="답변을 찾지 못하였습니다.")
