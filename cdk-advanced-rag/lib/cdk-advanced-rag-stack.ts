@@ -569,10 +569,10 @@ export class CdkAdvancedRagStack extends cdk.Stack {
         langsmith_api_key: cdk.SecretValue.unsafePlainText(''),
       }, 
     });
-
-    const lambdaRagKnowledgeBase = new lambda.DockerImageFunction(this, `knlowledge-base-for-${projectName}`, {
+/*
+    const lambdaRagKnowledgeBase = new lambda.DockerImageFunction(this, `knowledge-base-for-${projectName}`, {
       description: 'RAG based on Knoeledge Base',
-      functionName: `knlowledge-base-for-${projectName}`,
+      functionName: `knowledge-base-for-${projectName}`,
       code: lambda.DockerImageCode.fromImageAsset(path.join(__dirname, '../../lambda-knowledge-base')),
       timeout: cdk.Duration.seconds(120),
       memorySize: 4096,
@@ -582,10 +582,9 @@ export class CdkAdvancedRagStack extends cdk.Stack {
         projectName: projectName,
         "sharing_url": 'https://'+distribution_sharing.domainName,
       }
-    });     
-    
+    });         
     lambdaRagKnowledgeBase.grantInvoke(new cdk.aws_iam.ServicePrincipal("bedrock.amazonaws.com"));         
-
+*/
     const environment = {
       "projectName": projectName,
       "accountId": accountId,

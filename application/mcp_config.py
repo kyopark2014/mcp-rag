@@ -25,13 +25,6 @@ aws_region = config["region"] if "region" in config else "us-west-2"
 session = boto3.Session()
 credentials = session.get_credentials()
 
-aws_access_key_id = credentials.access_key
-aws_secret_access_key = credentials.secret_key
-aws_session_token = credentials.token
-
-print(f"aws_access_key_id: {aws_access_key_id}")
-print(f"aws_secret_access_key: {aws_secret_access_key}")
-
 mcp_user_config = {}        
 def load_config(mcp_type):
     if mcp_type == "basic":
@@ -435,8 +428,8 @@ def load_config(mcp_type):
                     "env": {
                         "OPENSEARCH_URL": managed_opensearch_url,
                         "AWS_REGION": aws_region,
-                        "AWS_ACCESS_KEY_ID": aws_access_key_id,
-                        "AWS_SECRET_ACCESS_KEY": aws_secret_access_key
+                        "AWS_ACCESS_KEY_ID": credentials.access_key,
+                        "AWS_SECRET_ACCESS_KEY": credentials.secret_key
                     }
                 }
             }
@@ -450,10 +443,10 @@ def load_selected_config(mcp_selections: dict[str, bool]):
     loaded_config = {}
 
     selected_servers = [server for server, is_selected in mcp_selections.items() if is_selected]
-    logger.info(f"selected_servers: {selected_servers}")
+    # logger.info(f"selected_servers: {selected_servers}")
 
     for server in selected_servers:
-        logger.info(f"server: {server}")
+        # logger.info(f"server: {server}")
 
         if server == "image generation":
             config = load_config('image_generation')
@@ -484,7 +477,7 @@ def load_selected_config(mcp_selections: dict[str, bool]):
         if config:
             loaded_config.update(config["mcpServers"])
 
-    logger.info(f"loaded_config: {loaded_config}")
+    # logger.info(f"loaded_config: {loaded_config}")
         
     return {
         "mcpServers": loaded_config
