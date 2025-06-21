@@ -560,6 +560,13 @@ export class CdkAdvancedRagStack extends cdk.Stack {
         statements: [bedrockAgentPolicy],
       }),
     );
+
+    // Add Knowledge Base S3 permissions for Lambda RAG (same as knowledge_base_role)
+    roleLambdaRag.attachInlinePolicy( 
+      new iam.Policy(this, `knowledge-base-s3-policy-lambda-rag-for-${projectName}`, {
+        statements: [bedrockKnowledgeBaseS3Policy],
+      }),
+    );
       
     const lambdaRag = new lambda.DockerImageFunction(this, `lambda-rag-for-${projectName}`, {
       description: 'RAG based on Knoeledge Base',

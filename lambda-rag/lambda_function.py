@@ -307,6 +307,7 @@ def search_by_knowledge_base(keyword: str, top_k: int) -> str:
                     "numberOfResults": top_k,
                     "overrideSearchType": "HYBRID"   # SEMANTIC
                 }},
+                region_name=bedrock_region
             )
             
             docs = retriever.invoke(keyword)
