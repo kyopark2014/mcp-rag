@@ -328,6 +328,19 @@ export class CdkAdvancedRagStack extends cdk.Stack {
       queue[i].grantSendMessages(lambdaS3eventManager); // permision for SQS putItem
     }
 
+    // s3 event source
+    const s3PutEventSource = new lambdaEventSources.S3EventSource(s3Bucket, {
+      events: [
+        s3.EventType.OBJECT_CREATED_PUT,
+        s3.EventType.OBJECT_REMOVED_DELETE,
+        s3.EventType.OBJECT_CREATED_COMPLETE_MULTIPART_UPLOAD
+      ],
+      filters: [
+        { prefix: s3_prefix+'/' },
+      ]
+    });
+    lambdaS3eventManager.addEventSource(s3PutEventSource); 
+
     // Lambda - chat (websocket)
     const roleLambdaDocument = new iam.Role(this, `role-lambda-chat-ws-for-${projectName}`, {
       roleName: `role-lambda-chat-ws-for-${projectName}-${region}`,

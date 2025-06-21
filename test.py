@@ -411,7 +411,7 @@ def get_contextual_docs_from_chunks(whole_doc, splitted_docs): # per chunk
         )
     return contexualized_docs, contexualized_chunks
 
-def add_to_opensearch(docs, key):    
+def add_to_opensearch(docs):    
     if len(docs) == 0:
         return []    
     #print('docs[0]: ', docs[0])       
