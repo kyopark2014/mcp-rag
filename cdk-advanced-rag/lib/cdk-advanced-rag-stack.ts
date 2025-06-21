@@ -573,7 +573,7 @@ export class CdkAdvancedRagStack extends cdk.Stack {
     const lambdaRagKnowledgeBase = new lambda.DockerImageFunction(this, `knlowledge-base-for-${projectName}`, {
       description: 'RAG based on Knoeledge Base',
       functionName: `knlowledge-base-for-${projectName}`,
-      code: lambda.DockerImageCode.fromImageAsset(path.join(__dirname, '../../lambda-rag-knowledge-base')),
+      code: lambda.DockerImageCode.fromImageAsset(path.join(__dirname, '../../lambda-knowledge-base')),
       timeout: cdk.Duration.seconds(120),
       memorySize: 4096,
       role: roleLambdaKnowledgeBase,
