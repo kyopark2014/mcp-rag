@@ -236,14 +236,13 @@ export class CdkAdvancedRagStack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       enforceHttps: true,
       capacity: {
-        masterNodes: 1,
-        masterNodeInstanceType: 'r6g.large.search',
+        // Single node configuration for development - using only data nodes without master nodes
         dataNodes: 1,
-        dataNodeInstanceType: 'r6g.large.search',
+        dataNodeInstanceType: 'r6g.large.search', // Smaller instance type for development
       },
       accessPolicies: [OpenSearchAccessPolicy],
       ebs: {
-        volumeSize: 100,
+        volumeSize: 100, // Smaller volume size for development
         volumeType: ec2.EbsDeviceVolumeType.GP3,
       },
       nodeToNodeEncryption: true,
