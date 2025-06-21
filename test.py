@@ -497,10 +497,7 @@ def add_to_opensearch(docs, key):
 
         if len(splitted_docs):
             if contextual_embedding == 'Enable':
-                if multi_region=="Enable":
-                    documents, contexualized_chunks = get_contextual_docs_using_parallel_processing(docs[-1], splitted_docs)
-                else:
-                    documents, contexualized_chunks = get_contextual_docs_from_chunks(docs[-1], splitted_docs)
+                documents, contexualized_chunks = get_contextual_docs_from_chunks(docs[-1], splitted_docs)
 
                 print('contextual chunks[0]: ', contexualized_chunks[0])  
             else:
@@ -627,22 +624,7 @@ def extract_page_images_from_pdf(key, pages, nImages, contents, texts):
         imgInfo = page.get_image_info()
         print(f"imgInfo[{i}]: {imgInfo}")         
         
-        width = height = 0
-        for j, info in enumerate(imgInfo):
-            bbox = info['bbox']
-            print(f"page[{i}] -> bbox[{j}]: {bbox}")
-            if (bbox[2]-bbox[0]>width or bbox[3]-bbox[1]>height) and (bbox[2]-bbox[0]<940 and bbox[3]-bbox[1]<520):
-                width = bbox[2]-bbox[0]
-                height = bbox[3]-bbox[1]
-                print(f"page[{i}] -> (used) width[{j}]: {bbox[2]-bbox[0]}, height[{j}]: {bbox[3]-bbox[1]}")                    
-            print(f"page[{i}] -> (image) width[{j}]: {info['width']}, height[{j}]: {info['height']}")
-            
-        print(f"nImages[{i}]: {nImages[i]}")  # number of XObjects                    
-
-        if ocr=="Enable" or nImages[i]>=4 or \
-            (nImages[i]>=1 and (width==0 and height==0)) or \
-            (nImages[i]>=1 and (width>=100 or height>=100)):
-
+        if ocr=="Enable":
             contexual_text = ""
             
             print('start contextual embedding for image.')
@@ -770,7 +752,7 @@ def store_document_for_opensearch(file_type, key):
     ))    
     print('docs: ', docs)
 
-    ids = add_to_opensearch(docs, key)
+    ids = add_to_opensearch(docs)
     
     return ids, files
 

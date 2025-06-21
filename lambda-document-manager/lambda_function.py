@@ -471,7 +471,7 @@ def store_document_for_opensearch(file_type, key):
     ))    
     print('docs: ', docs)
 
-    ids = add_to_opensearch(docs, key)
+    ids = add_to_opensearch(docs)
     
     return ids, files
 
@@ -856,16 +856,9 @@ def get_contextual_docs_using_parallel_processing(whole_doc, splitted_docs):
     
     return contexualized_docs, contexualized_chunks
 
-def add_to_opensearch(docs, key):    
+def add_to_opensearch(docs):    
     if len(docs) == 0:
         return []    
-    #print('docs[0]: ', docs[0])       
-    
-    # objectName = (key[key.find(s3_prefix)+len(s3_prefix)+1:len(key)])
-    # print('objectName: ', objectName)    
-    # metadata_key = meta_prefix+objectName+'.metadata.json'
-    # print('meta file name: ', metadata_key)    
-    # delete_document_if_exist(metadata_key)
         
     ids = []
     if enableParentDocumentRetrival == 'true':
