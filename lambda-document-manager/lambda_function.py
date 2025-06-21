@@ -514,7 +514,7 @@ def store_code_for_opensearch(file_type, key):
                 )
     print('docs size: ', len(docs))
     
-    return add_to_opensearch(docs, key)
+    return add_to_opensearch(docs)
     
 def store_image_for_opensearch(key):
     print('extract text from an image: ', key) 
@@ -582,7 +582,7 @@ def store_image_for_opensearch(key):
             )                                                                                                            
         print('docs size: ', len(docs))
         
-        return add_to_opensearch(docs, key)
+        return add_to_opensearch(docs)
     
     except Exception:
         err_msg = traceback.format_exc()
