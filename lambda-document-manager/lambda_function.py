@@ -451,7 +451,7 @@ vectorstore = OpenSearchVectorSearch(
 
 def store_document_for_opensearch(file_type, key):
     print('upload to opensearch: ', key) 
-    contents, files, tables = load_document(file_type, key)
+    contents, files = load_document(file_type, key)
     
     if len(contents) == 0:
         print('no contents: ', key)
@@ -468,17 +468,7 @@ def store_document_for_opensearch(file_type, key):
             'name': key,
             'url': path+parse.quote(key)
         }
-    ))
-    
-    # table
-    for table in tables:
-        docs.append(Document(
-            page_content=table['body'],
-            metadata={
-                'name': table['name'],
-                'url': path+parse.quote(table['name']),
-            }
-        ))            
+    ))    
     print('docs: ', docs)
 
     ids = add_to_opensearch(docs, key)
@@ -978,108 +968,6 @@ def add_to_opensearch(docs, key):
             print('error message: ', err_msg)
             #raise Exception ("Not able to add docs in opensearch")    
     return ids
-
-def extract_images_from_pdf(reader, key):
-    picture_count = 1
-    
-    extracted_image_files = []
-    print('pages: ', len(reader.pages))
-    for i, page in enumerate(reader.pages):
-        print('page: ', page)
-        if '/ProcSet' in page['/Resources']:
-            print('Resources/ProcSet: ', page['/Resources']['/ProcSet'])        
-        if '/XObject' in page['/Resources']:
-            print(f"Resources/XObject[{i}]: {page['/Resources']['/XObject']}")
-        
-        for image_file_object in page.images:
-            print('image_file_object: ', image_file_object)
-            
-            img_name = image_file_object.name
-            print('img_name: ', img_name)
-            
-            if img_name in extracted_image_files:
-                print('skip....')
-                continue
-            
-            extracted_image_files.append(img_name)
-            # print('list: ', extracted_image_files)
-            
-            ext = img_name.split('.')[-1]            
-            contentType = ""
-            if ext == 'png':
-                contentType = 'image/png'
-            elif ext == 'jpg' or ext == 'jpeg':
-                contentType = 'image/jpeg'
-            elif ext == 'gif':
-                contentType = 'image/gif'
-            elif ext == 'bmp':
-                contentType = 'image/bmp'
-            elif ext == 'tiff' or ext == 'tif':
-                contentType = 'image/tiff'
-            elif ext == 'svg':
-                contentType = 'image/svg+xml'
-            elif ext == 'webp':
-                contentType = 'image/webp'
-            elif ext == 'ico':
-                contentType = 'image/x-icon'
-            elif ext == 'eps':
-                contentType = 'image/eps'
-            # print('contentType: ', contentType)
-            
-            if contentType:                
-                image_bytes = image_file_object.data
-
-                pixels = BytesIO(image_bytes)
-                pixels.seek(0, 0)
-                            
-                # get path from key
-                objectName = (key[key.find(s3_prefix)+len(s3_prefix)+1:len(key)])
-                folder = 'files/'+objectName+'/'
-                # print('folder: ', folder)
-                            
-                img_key = folder+img_name
-
-                response = s3_client.head_object(Bucket=s3_bucket, Key=img_key)
-                print("head_object response: ", response)
-
-                delete_if_exist(s3_bucket, img_key)
-
-                print('create an image: ', img_key)
-                response = s3_client.put_object(
-                    Bucket=s3_bucket,
-                    Key=img_key,
-                    ContentType=contentType,
-                    Metadata = {
-                        "type": 'image',
-                        "ext": 'png',
-                        "page": i+1,
-                        "contextual_embedding": contextual_embedding,
-                        "multi_region": multi_region,
-                        "model_name": model_name,
-                        "contextual_text": "",
-                        "ocr": ocr
-                    },
-                    Body=pixels
-                )
-                print('response: ', response)
-                            
-                # metadata
-                img_meta = {   # not used yet
-                    'bucket': s3_bucket,
-                    'key': img_key,
-                    'url': path+img_key,
-                    'ext': 'png',
-                    'page': i+1,
-                    'original': key
-                }
-                print('img_meta: ', img_meta)
-                            
-                picture_count += 1
-                    
-                extracted_image_files.append(img_key)
-
-    print('extracted_image_files: ', extracted_image_files)    
-    return extracted_image_files
         
 def extract_images_from_pptx(prs, key):
     picture_count = 1
@@ -1287,7 +1175,7 @@ def extract_table_image(key, page, index, table_count, bbox):
 
     return folder+fname+'.png'
 
-def extract_page_images_from_pdf(key, pages, nImages, contents, texts):
+def extract_page_images_from_pdf(key, pages, contents, texts):
     files = []
     for i, page in enumerate(pages):
         print('page: ', page)
@@ -1295,22 +1183,7 @@ def extract_page_images_from_pdf(key, pages, nImages, contents, texts):
         imgInfo = page.get_image_info()
         print(f"imgInfo[{i}]: {imgInfo}")         
         
-        width = height = 0
-        for j, info in enumerate(imgInfo):
-            bbox = info['bbox']
-            print(f"page[{i}] -> bbox[{j}]: {bbox}")
-            if (bbox[2]-bbox[0]>width or bbox[3]-bbox[1]>height) and (bbox[2]-bbox[0]<940 and bbox[3]-bbox[1]<520):
-                width = bbox[2]-bbox[0]
-                height = bbox[3]-bbox[1]
-                print(f"page[{i}] -> (used) width[{j}]: {bbox[2]-bbox[0]}, height[{j}]: {bbox[3]-bbox[1]}")                    
-            print(f"page[{i}] -> (image) width[{j}]: {info['width']}, height[{j}]: {info['height']}")
-            
-        print(f"nImages[{i}]: {nImages[i]}")  # number of XObjects                    
-
-        if ocr=="Enable" or nImages[i]>=4 or \
-            (nImages[i]>=1 and (width==0 and height==0)) or \
-            (nImages[i]>=1 and (width>=100 or height>=100)):
-
+        if ocr=="Enable":
             contexual_text = ""
             if contextual_embedding == 'Enable':   
                 print('start contextual embedding for image.')
@@ -1401,29 +1274,14 @@ def delete_if_exist(bucket, key):
         print('error message: ', err_msg)        
         raise Exception ("Not able to create meta file")
             
-def extract_page_image(conn, key, page, i, nImages, contents, text, selected_model):
+def extract_page_image(conn, key, page, i, contents, text, selected_model):
     print(f"page[{i}]: {page}")
 
     file = ""        
     imgInfo = page.get_image_info()
     print(f"imgInfo[{i}]: {imgInfo}")
     
-    width = height = 0
-    for j, info in enumerate(imgInfo):
-        bbox = info['bbox']
-        print(f"page[{i}] -> bbox[{j}]: {bbox}")
-        if (bbox[2]-bbox[0]>width or bbox[3]-bbox[1]>height) and (bbox[2]-bbox[0]<940 and bbox[3]-bbox[1]<520):
-            width = bbox[2]-bbox[0]
-            height = bbox[3]-bbox[1]
-            print(f"page[{i}] -> (used) width[{j}]: {bbox[2]-bbox[0]}, height[{j}]: {bbox[3]-bbox[1]}")                    
-        print(f"page[{i}] -> (image) width[{j}]: {info['width']}, height[{j}]: {info['height']}")
-        
-    print(f"nImages[{i}]: {nImages[i]}")  # number of XObjects                    
-
-    if ocr=="Enable" or nImages[i]>=4 or \
-        (nImages[i]>=1 and (width==0 and height==0)) or \
-        (nImages[i]>=1 and (width>=100 or height>=100)):
-
+    if ocr=="Enable":
         contexual_text = ""
         if contextual_embedding == 'Enable':   
             print('start contextual embedding for image.')
@@ -1483,7 +1341,7 @@ def extract_page_image(conn, key, page, i, nImages, contents, text, selected_mod
     conn.send(file)
     conn.close()
 
-def extract_page_images_using_parallel_processing(key, pages, nImages, contents, texts):
+def extract_page_images_using_parallel_processing(key, pages, contents, texts):
     global selected_model
     
     files = []    
@@ -1499,7 +1357,7 @@ def extract_page_images_using_parallel_processing(key, pages, nImages, contents,
             parent_conn, child_conn = Pipe()
             parent_connections.append(parent_conn)
                 
-            process = Process(target=extract_page_image, args=(child_conn, key, pages[index], index, nImages, contents, texts[index], selected_model))
+            process = Process(target=extract_page_image, args=(child_conn, key, pages[index], index, contents, texts[index], selected_model))
             processes.append(process)
 
             selected_model = selected_model + 1
@@ -1529,7 +1387,6 @@ def load_document(file_type, key):
     doc = s3r.Object(s3_bucket, key)
     
     files = []
-    tables = []
     contents = ""
     if file_type == 'pdf':
         Byte_contents = doc.get()['Body'].read()
@@ -1542,96 +1399,24 @@ def load_document(file_type, key):
             print('pages: ', len(reader.pages))
             
             # extract text
-            imgList = []
             for i, page in enumerate(reader.pages):
                 print(f"page[{i}]: {page}")
                 texts.append(page.extract_text())
                 
-                # annotation
-                #if '/Type' in page:
-                #    print(f"Type[{i}]: {page['/Type']}")                
-                #if '/Annots' in page:
-                #    print(f"Annots[{i}]: {page['/Annots']}")
-                #if '/Group' in page:
-                #    print(f"Group[{i}]: {page['/Group']}")
-                if '/Contents' in page:                
-                    print(f"Contents[{i}]: {page['/Contents']}")                    
-                #if '/MediaBox' in page:                
-                #    print(f"MediaBox[{i}]: {page['/MediaBox']}")                    
-                #if '/Parent' in page:
-                #    print(f"Parent[{i}]: {page['/Parent']}")
-                                
-                nImage = 0
-                if '/Resources' in page:
-                    print(f"Resources[{i}]: {page['/Resources']}")
-                    if '/ProcSet' in page['/Resources']:
-                        print(f"Resources/ProcSet[{i}]: {page['/Resources']['/ProcSet']}")
-                    if '/XObject' in page['/Resources']:
-                        print(f"Resources/XObject[{i}]: {page['/Resources']['/XObject']}")                        
-                        for j, image in enumerate(page['/Resources']['/XObject']):
-                            print(f"image[{j}]: {image}")                                 
-                            if image in imgList:
-                                print('Duplicated...')
-                                continue    
-                            else:
-                                imgList.append(image)
-                                                    
-                            Im = page['/Resources']['/XObject'][image]
-                            print(f"{image}[{j}]: {Im}")                            
-                            nImage = nImage+1
-                            
-                print(f"# of images of page[{i}] = {nImage}")
-                nImages.append(nImage)
-
             contents = '\n'.join(texts)
             
-            pages = fitz.open(stream=Byte_contents, filetype='pdf')     
-            
-            # extract table data
-            if enableTableExtraction=="Enable" and ocr=="Disable":
-                table_count = 0
-                for i, page in enumerate(pages):
-                    page_tables = page.find_tables()
-                    
-                    if page_tables.tables:
-                        print('page_tables.tables: ', len(page_tables.tables))
-
-                        for tab in page_tables.tables:    
-                            print(tab.to_markdown())    
-                            print(f"index: {i}")
-                            print(f"bounding box: {tab.bbox}")  # bounding box of the full table
-                            #print(f"top-left cell: {tab.cells[0]}")  # top-left cell
-                            #print(f"bottom-right cell: {tab.cells[-1]}")  # bottom-right cell
-                            print(f"row count: {tab.row_count}, column count: {tab.col_count}") # row and column counts
-                            print("\n\n")
-                            
-                            if tab.row_count>=2:
-                                table_image = extract_table_image(key, page, i, table_count, tab.bbox)
-                                table_count += 1
-                            
-                                tables.append({
-                                    "body": tab.to_markdown(),
-                                    "name": table_image
-                                })                    
-                                files.append(table_image)
-
+            pages = fitz.open(stream=Byte_contents, filetype='pdf')                 
             # extract page images
-            if enablePageImageExraction=='Enable': 
+            if enablePageImageExraction=='Enable' and ocr=='Enable': 
                 if multi_region == "Enable":
-                    image_files = extract_page_images_using_parallel_processing(key, pages, nImages, contents, texts)
+                    image_files = extract_page_images_using_parallel_processing(key, pages, contents, texts)
                 else:
-                    image_files = extract_page_images_from_pdf(key, pages, nImages, contents, texts)
+                    image_files = extract_page_images_from_pdf(key, pages, contents, texts)
 
                 for img in image_files:
                     files.append(img)
                     print(f"image file: {img}")
-                                                    
-            elif enableImageExtraction=='Enable' and ocr=='Disable':
-                image_files = extract_images_from_pdf(reader, key)
-                for img in image_files:
-                    files.append(img)
-                    print(f"image file: {img}")
-        
+                                                            
         except Exception:
                 err_msg = traceback.format_exc()
                 print('err_msg: ', err_msg)
@@ -1694,7 +1479,7 @@ def load_document(file_type, key):
             print('error message: ', err_msg)        
             # raise Exception ("Not able to load the file")
     
-    return contents, files, tables
+    return contents, files
 
 # load a code file from s3
 def load_code(file_type, key):

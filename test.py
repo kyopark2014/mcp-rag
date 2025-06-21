@@ -706,7 +706,6 @@ def load_document(file_type, key):
     doc = s3r.Object(s3_bucket, key)
     
     files = []
-    tables = []
     contents = ""
     if file_type == 'pdf':
         Byte_contents = doc.get()['Body'].read()
@@ -747,11 +746,11 @@ def load_document(file_type, key):
             print('error message: ', err_msg)        
             # raise Exception ("Not able to load the file")
     
-    return contents, files, tables
+    return contents, files
 
 def store_document_for_opensearch(file_type, key):
     print('upload to opensearch: ', key) 
-    contents, files, tables = load_document(file_type, key)
+    contents, files = load_document(file_type, key)
     
     if len(contents) == 0:
         print('no contents: ', key)
@@ -768,17 +767,7 @@ def store_document_for_opensearch(file_type, key):
             'name': key,
             'url': path+parse.quote(key)
         }
-    ))
-    
-    # table
-    for table in tables:
-        docs.append(Document(
-            page_content=table['body'],
-            metadata={
-                'name': table['name'],
-                'url': path+parse.quote(table['name']),
-            }
-        ))            
+    ))    
     print('docs: ', docs)
 
     ids = add_to_opensearch(docs, key)
