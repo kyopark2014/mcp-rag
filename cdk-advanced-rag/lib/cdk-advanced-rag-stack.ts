@@ -231,16 +231,15 @@ export class CdkAdvancedRagStack extends cdk.Stack {
     });
 
     const domain = new opensearch.Domain(this, 'Domain', {
-      version: opensearch.EngineVersion.OPENSEARCH_2_3,
+      version: opensearch.EngineVersion.OPENSEARCH_2_13,
       
       domainName: domainName,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       enforceHttps: true,
       capacity: {
-        masterNodes: 3,
+        masterNodes: 1,
         masterNodeInstanceType: 'r6g.large.search',
-        // multiAzWithStandbyEnabled: false,
-        dataNodes: 3,
+        dataNodes: 1,
         dataNodeInstanceType: 'r6g.large.search',        
         // warmNodes: 2,
         // warmInstanceType: 'ultrawarm1.medium.search',
