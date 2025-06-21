@@ -105,6 +105,88 @@ async def call_model(state: State, config):
                 content=content
             )
             state["messages"] = messages
+
+        if tool_name == "QueryKnowledgeBases":
+            content = ""
+            try:
+                # Handle case where tool_content contains multiple JSON objects
+                if tool_content.strip().startswith('{'):
+                    # Parse each JSON object individually
+                    json_objects = []
+                    current_pos = 0
+                    brace_count = 0
+                    start_pos = -1
+                    
+                    for i, char in enumerate(tool_content):
+                        if char == '{':
+                            if brace_count == 0:
+                                start_pos = i
+                            brace_count += 1
+                        elif char == '}':
+                            brace_count -= 1
+                            if brace_count == 0 and start_pos != -1:
+                                try:
+                                    json_obj = json.loads(tool_content[start_pos:i+1])
+                                    # logger.info(f"json_obj: {json_obj}")
+                                    json_objects.append(json_obj)
+                                except json.JSONDecodeError:
+                                    logger.info(f"JSON parsing error: {tool_content[start_pos:i+1][:100]}")
+                                start_pos = -1
+                    
+                    json_data = json_objects
+                else:
+                    # Try original method
+                    json_data = json.loads(tool_content)
+                
+                # logger.info(f"json_data: {json_data}")
+
+                # Build content
+                if isinstance(json_data, list):
+                    for item in json_data:
+                        if isinstance(item, dict) and "content" in item:
+                            content_text = item["content"].get("text", "")
+                            content += content_text + "\n\n"
+
+                            uri = "" 
+                            if "location" in item:
+                                if "s3Location" in item["location"]:
+                                    uri = item["location"]["s3Location"]["uri"]
+                                    # logger.info(f"uri (list): {uri}")
+                                    references.append({
+                                        "url": uri, 
+                                        "title": uri.split("/")[-1],
+                                        "content": content_text[:100] + "..." if len(content_text) > 100 else content_text
+                                    })
+                elif isinstance(json_data, dict) and "content" in json_data:
+                    content_text = json_data["content"].get("text", "")
+                    content += content_text + "\n\n"
+                    uri = "" 
+                    if "location" in item:
+                        if "s3Location" in item["location"]:
+                            uri = item["location"]["s3Location"]["uri"]
+                            # logger.info(f"uri (dict): {uri}")
+                            references.append({
+                                "url": uri, 
+                                "title": uri.split("/")[-1],
+                                "content": content_text[:100] + "..." if len(content_text) > 100 else content_text
+                            })                
+                    
+            except json.JSONDecodeError as e:
+                logger.info(f"JSON parsing error: {e}")
+                json_data = {}
+                content = tool_content  # Use original content if parsing fails
+
+            logger.info(f"content: {content}")
+            logger.info(f"references: {references}")
+
+            # manupulate the output of tool message
+            messages = state["messages"]
+            messages[-1] = ToolMessage(
+                name=tool_name,
+                tool_call_id=last_message.tool_call_id,
+                content=content
+            )
+            state["messages"] = messages
             
         try:
             json_data = json.loads(tool_content)
