@@ -33,6 +33,7 @@ sqs = boto3.client('sqs')
 s3_client = boto3.client('s3')  
 s3_bucket = os.environ.get('s3_bucket') # bucket name
 s3_prefix = os.environ.get('s3_prefix')
+s3_capture_prefix = os.environ.get('s3_capture_prefix')
 meta_prefix = "metadata/"
 enableParentDocumentRetrival = os.environ.get('enableParentDocumentRetrival')
 
@@ -1196,7 +1197,7 @@ def extract_page_images_from_pdf(key, pages, contents, texts):
                             
             # get path from key
             objectName = (key[key.find(s3_prefix)+len(s3_prefix)+1:len(key)])
-            folder = 'captures/'+objectName+'/'
+            folder = f"{s3_capture_prefix}/{objectName}/"
             print('folder: ', folder)
                     
             fname = 'img_'+key.split('/')[-1].split('.')[0]+f"_{i}"
@@ -1293,7 +1294,7 @@ def extract_page_image(conn, key, page, i, contents, text, selected_model):
                         
         # get path from key
         objectName = (key[key.find(s3_prefix)+len(s3_prefix)+1:len(key)])
-        folder = 'captures/'+objectName+'/'
+        folder = f"{s3_capture_prefix}/{objectName}/"
         print('folder: ', folder)
                 
         fname = 'img_'+key.split('/')[-1].split('.')[0]+f"_{i}"
@@ -1742,7 +1743,7 @@ def get_documentId(key, category):
                 
     return documentId
 
-def create_metadata(bucket, key, meta_prefix, s3_prefix, url, category, documentId, ids, files):
+def create_metadata(bucket, key, meta_prefix, url, category, documentId, ids, files):
     title = key
     timestamp = int(time.time())
 
@@ -1759,9 +1760,13 @@ def create_metadata(bucket, key, meta_prefix, s3_prefix, url, category, document
         "files": files
     }
     print('metadata: ', metadata)
-    
-    #objectName = (key[key.find(s3_prefix)+len(s3_prefix)+1:len(key)]).upper()
-    objectName = (key[key.find(s3_prefix)+len(s3_prefix)+1:len(key)])
+
+    if key.find(s3_prefix) != -1:
+        objectName = (key[key.find(s3_prefix)+len(s3_prefix)+1:len(key)])
+    elif key.find(s3_capture_prefix) != -1:
+        objectName = (key[key.find(s3_capture_prefix)+len(s3_capture_prefix)+1:len(key)])
+    else:
+        objectName = (key[key.find(s3_prefix)+len(s3_prefix)+1:len(key)])
     print('objectName: ', objectName)
 
     client = boto3.client('s3')
@@ -1856,7 +1861,12 @@ def lambda_handler(event, context):
             
         if eventName == 'ObjectRemoved:Delete':
             if isSupported(file_type):
-                objectName = (key[key.find(s3_prefix)+len(s3_prefix)+1:len(key)])
+                if key.find(s3_prefix) != -1:
+                    objectName = (key[key.find(s3_prefix)+len(s3_prefix)+1:len(key)])
+                elif key.find(s3_capture_prefix) != -1:
+                    objectName = (key[key.find(s3_capture_prefix)+len(s3_capture_prefix)+1:len(key)])
+                else:   
+                    objectName = (key[key.find(s3_prefix)+len(s3_prefix)+1:len(key)])
                 print('objectName: ', objectName)
                 
                 # get metadata from s3
@@ -1959,7 +1969,7 @@ def lambda_handler(event, context):
                 elif file_type == 'png' or file_type == 'jpg' or file_type == 'jpeg':
                     ids = store_image_for_opensearch(key)
                                                                                                          
-                create_metadata(bucket=s3_bucket, key=key, meta_prefix=meta_prefix, s3_prefix=s3_prefix, url=path+parse.quote(key), category=category, documentId=documentId, ids=ids, files=files)
+                create_metadata(bucket=s3_bucket, key=key, meta_prefix=meta_prefix, url=path+parse.quote(key), category=category, documentId=documentId, ids=ids, files=files)
 
             else: # delete if the object is unsupported one for format or size
                 try:

@@ -418,6 +418,7 @@ export class CdkAdvancedRagStack extends cdk.Stack {
         environment: {
           s3_bucket: s3Bucket.bucketName,
           s3_prefix: s3_prefix,
+          s3_capture_prefix: s3_capture_prefix,
           opensearch_url: opensearch_url,
           roleArn: roleLambdaDocument.roleArn,
           path: 'https://'+distribution_sharing.domainName+'/', 
