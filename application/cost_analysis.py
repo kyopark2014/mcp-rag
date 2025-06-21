@@ -5,26 +5,30 @@ import pandas as pd
 import plotly.express as px
 import traceback
 import chat
-import cost_analysis as cost
 
 from datetime import datetime, timedelta
 from langchain_core.prompts import ChatPromptTemplate
 
-# logging
-logger = utils.CreateLogger("streamlit")
+import logging
+import sys
+logging.basicConfig(
+    level=logging.INFO,  # Default to INFO level
+    format='%(filename)s:%(lineno)d | %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stderr)
+    ]
+)
+logger = logging.getLogger("cost_analysis")
 
-def get_cost_analysis():
+def get_cost_analysis(days: str=30):
     """Cost analysis data collection"""
     logger.info(f"Getting cost analysis...")
     try:
         end_date = datetime.now()
-        start_date = end_date - timedelta(days=30)
+        start_date = end_date - timedelta(days=days)
         
         # cost explorer
-        ce = boto3.client(
-            service_name='ce',
-            region_name=chat.bedrock_region
-        )
+        ce = boto3.client('ce')
 
         # service cost
         service_response = ce.get_cost_and_usage(
@@ -100,15 +104,15 @@ def get_cost_analysis():
         }
         
     except Exception as e:
-        print(f"Error in cost analysis: {str(e)}")
+        logger.info(f"Error in cost analysis: {str(e)}")
         return None
 
 def create_cost_visualizations(cost_data):
     """Cost Visualization"""
-    print("Creating cost visualizations...")
+    logger.info("Creating cost visualizations...")
 
     if not cost_data:
-        print("No cost data available")
+        logger.info("No cost data available")
         return None
         
     visualizations = {}
@@ -141,7 +145,7 @@ def create_cost_visualizations(cost_data):
     )
     visualizations['region_bar'] = fig_bar
     
-    print(f"Visualizations created: {list(visualizations.keys())}")
+    logger.info(f"Visualizations created: {list(visualizations.keys())}")
     return visualizations
 
 def generate_cost_insights():
@@ -187,7 +191,7 @@ def generate_cost_insights():
     ) 
 
     prompt = ChatPromptTemplate.from_messages([("system", system), ("human", human)])
-    # print('prompt: ', prompt)    
+    # logger.info('prompt: ', prompt)    
 
     llm = chat.get_chat(extended_thinking="Disable")
     chain = prompt | llm
@@ -225,7 +229,7 @@ def get_visualiation():
             visualizations = create_cost_visualizations(cost_data)
 
     except Exception as e:
-        print(f"Error to earn cost data: {str(e)}")   
+        logger.info(f"Error to earn cost data: {str(e)}")   
 
 get_visualiation() 
 
@@ -253,9 +257,9 @@ def ask_cost_insights(question):
     ) 
 
     prompt = ChatPromptTemplate.from_messages([("system", system), ("human", human)])
-    # print('prompt: ', prompt)    
+    # logger.info('prompt: ', prompt)    
 
-    llm = chat.get_chat(extended_thinking="Disable")
+    llm = chat.get_chat()
     chain = prompt | llm
 
     raw_cost = json.dumps(cost_data_dict)

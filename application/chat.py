@@ -11,6 +11,7 @@ import PyPDF2
 import csv
 import utils
 import agent
+import rag_opensearch as rag
 
 from io import BytesIO
 from PIL import Image
@@ -41,6 +42,7 @@ from langchain_mcp_adapters.client import MultiServerMCPClient
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.store.memory import InMemoryStore
 from multiprocessing import Process, Pipe
+from langchain_aws import BedrockEmbeddings
 
 import logging
 import sys
@@ -68,6 +70,10 @@ memorystores[userId] = memorystore
 
 reasoning_mode = 'Disable'
 debug_messages = []  # List to store debug messages
+
+enableParentDocumentRetrival = 'Enable'
+enableHybridSearch = 'Enable'
+selected_embedding = 0
 
 def get_debug_messages():
     global debug_messages
@@ -211,7 +217,7 @@ client = boto3.client(
     region_name=bedrock_region
 )  
 
-mcp_json = ""
+mcp_json = {}
 reasoning_mode = 'Disable'
 grading_mode = 'Disable'
 contextual_embedding = 'Disable'
@@ -842,6 +848,58 @@ def grade_documents(question, documents):
                 continue
 
     return filtered_docs
+
+selected_embedding = 0
+def get_embedding():
+    LLM_embedding = [
+        {
+            "bedrock_region": "us-west-2", # Oregon
+            "model_type": "titan",
+            "model_id": "amazon.titan-embed-text-v2:0"
+        },
+        {
+            "bedrock_region": "us-east-1", # N.Virginia
+            "model_type": "titan",
+            "model_id": "amazon.titan-embed-text-v2:0"
+        },
+        {
+            "bedrock_region": "us-east-2", # Ohio
+            "model_type": "titan",
+            "model_id": "amazon.titan-embed-text-v2:0"
+        }
+    ]
+    
+    global selected_embedding
+    embedding_profile = LLM_embedding[selected_embedding]
+    bedrock_region =  embedding_profile['bedrock_region']
+    model_id = embedding_profile['model_id']
+    logger.info(f"selected_embedding: {selected_embedding}, bedrock_region: {bedrock_region}, model_id: {model_id}")
+    
+    # bedrock   
+    boto3_bedrock = boto3.client(
+        service_name='bedrock-runtime',
+        region_name=bedrock_region, 
+        config=Config(
+            retries = {
+                'max_attempts': 30
+            }
+        )
+    )
+    
+    bedrock_embedding = BedrockEmbeddings(
+        client=boto3_bedrock,
+        region_name = bedrock_region,
+        model_id = model_id
+    )  
+    
+    if multi_region=='Enable':
+        selected_embedding = selected_embedding + 1
+        if selected_embedding == len(LLM_embedding):
+            selected_embedding = 0
+    else:
+        selected_embedding = 0
+
+    return bedrock_embedding
 
 ####################### LangChain #######################
 # General Conversation
@@ -1555,7 +1613,123 @@ def run_rag_with_knowledge_base(query, st):
         msg += ref
     
     return msg, reference_docs
-   
+
+contentList = []
+def check_duplication(docs):
+    global contentList
+    length_original = len(docs)
+    
+    updated_docs = []
+    logger.info(f"length of relevant_docs: {len(docs)}")
+    for doc in docs:            
+        if doc.page_content in contentList:
+            logger.info(f"duplicated")
+            continue
+        contentList.append(doc.page_content)
+        updated_docs.append(doc)            
+    length_updated_docs = len(updated_docs)     
+    
+    if length_original == length_updated_docs:
+        logger.info(f"no duplication")
+    else:
+        logger.info(f"length of updated relevant_docs: {length_updated_docs}")
+    
+    return updated_docs
+
+def get_references(docs):    
+    reference = ""
+    for i, doc in enumerate(docs):
+        page = ""
+        if "page" in doc.metadata:
+            page = doc.metadata['page']
+            #print('page: ', page)            
+        url = ""
+        if "url" in doc.metadata:
+            url = doc.metadata['url']
+            logger.info(f"url: {url}")
+        name = ""
+        if "name" in doc.metadata:
+            name = doc.metadata['name']
+            #print('name: ', name)     
+        
+        sourceType = ""
+        if "from" in doc.metadata:
+            sourceType = doc.metadata['from']
+        else:
+            sourceType = "WWW"
+
+        excerpt = ""+doc.page_content
+        excerpt = re.sub('"', '', excerpt)
+        excerpt = re.sub('#', '', excerpt)        
+        excerpt = re.sub('\n', '', excerpt)        
+        logger.info(f"excerpt(quotation removed): {excerpt}")
+
+        name = name[name.rfind('/')+1:]
+        
+        if page:                
+            reference += f"{i+1}. {page} page in [{name}]({url}), {excerpt[:30]}...\n"
+        else:
+            reference += f"{i+1}. [{name}]({url}), {excerpt[:30]}...\n"
+
+    if reference: 
+        reference = "\n\n#### 관련 문서\n"+reference
+
+    return reference
+
+def run_rag_with_opensearch(text, st):
+    # retrieve
+    if debug_mode == "Enable":
+        st.info(f"RAG 검색을 수행합니다. 검색어: {text}")        
+    relevant_docs = rag.retrieve_documents_from_opensearch(text, top_k=4)
+        
+    # grade   
+    if debug_mode == "Enable":
+        st.info(f"가져온 {len(relevant_docs)}개의 문서를 평가하고 있습니다.")     
+    filtered_docs = grade_documents(text, relevant_docs) # grading    
+    filtered_docs = check_duplication(filtered_docs) # check duplication
+
+    if debug_mode == "Enable":
+        st.info(f"{len(filtered_docs)}개의 문서가 선택되었습니다.")
+    
+    # generate
+    if debug_mode == "Enable":
+        st.info(f"결과를 생성중입니다.")
+    relevant_context = ""
+    for document in filtered_docs:
+        relevant_context = relevant_context + document.page_content + "\n\n"        
+    # print('relevant_context: ', relevant_context)
+
+    rag_chain = get_rag_prompt(text)                       
+    msg = ""    
+    try: 
+        result = rag_chain.invoke(
+            {
+                "question": text,
+                "context": relevant_context                
+            }
+        )
+        logger.info(f"result: {result}")
+
+        # extended thinking
+        if debug_mode=="Enable":
+            show_extended_thinking(st, result)
+
+        msg = result.content        
+        if msg.find('<result>')!=-1:
+            msg = msg[msg.find('<result>')+8:msg.find('</result>')]
+        
+    except Exception:
+        err_msg = traceback.format_exc()
+        logger.info(f"error message: {err_msg}")                    
+        raise Exception ("Not able to request to LLM")
+    
+    reference = ""
+    if filtered_docs:
+        reference = get_references(filtered_docs)
+    
+    return msg+reference, filtered_docs
+
+
 ####################### Agent #######################
 # Agent 
 #####################################################
@@ -1960,7 +2134,7 @@ async def mcp_rag_agent_multiple(query, historyMode, st):
                 logger.error(f"Error during agent invocation: {str(e)}")
                 raise Exception(f"Agent invocation failed: {str(e)}")
 
-async def mcp_rag_agent_single(query, historyMode, st):
+async def mcp_rag_agent_single(query, historyMode, st):    
     server_params = load_mcp_server_parameters()
     logger.info(f"server_params: {server_params}")
 

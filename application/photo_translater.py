@@ -4,8 +4,17 @@ import utils
 from io import BytesIO
 import base64
 
-# logging
-logger = utils.CreateLogger("streamlit")
+import logging
+import sys
+
+logging.basicConfig(
+    level=logging.INFO,  # Default to INFO level
+    format='%(filename)s:%(lineno)d | %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stderr)
+    ]
+)
+logger = logging.getLogger("photo")
 
 def take_photo(st):
     st.title("📸 카메라로 사진 찍기")

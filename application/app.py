@@ -4,9 +4,20 @@ import utils
 import cost_analysis as cost
 import photo_translater
 import knowledge_base as kb
+import asyncio
+import logging
+import sys
+import mcp_config 
+import json
 
-# logging
-logger = utils.CreateLogger("streamlit")
+logging.basicConfig(
+    level=logging.INFO,  # Default to INFO level
+    format='%(filename)s:%(lineno)d | %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stderr)
+    ]
+)
+logger = logging.getLogger("streamlit")
 
 # title
 st.set_page_config(page_title='RAG', page_icon=None, layout="centered", initial_sidebar_state="auto", menu_items=None)
@@ -73,7 +84,7 @@ with st.sidebar:
     )
 
     rag_type = st.radio(
-        label="원하는 대화 형태를 선택하세요. ",options=["Knowledge Base", "Opensearch"], index=0
+        label="RAG 타입을 선택하세요. ",options=["Knowledge Base", "Opensearch"], index=0
     )
     
     uploaded_file = None
@@ -114,7 +125,39 @@ with st.sidebar:
     uploaded_file = st.file_uploader("RAG를 위한 파일을 선택합니다.", type=["pdf", "txt", "py", "md", "csv", "json"], key=chat.fileId)
    
     gradingMode = 'Disable'
-    mcp = ""
+    mcp = {}
+    if mode=='Agent' or mode=='Agent (Chat)':
+        st.subheader("⚙️ MCP Config")
+
+        mcp_options = [ 
+            "basic", "Knowledge Base (Lambda)", "opensearch", "aws_knowledge_base", "사용자 설정"
+        ]
+        mcp_selections = {}
+        default_selections = ["basic"]
+
+        with st.expander("MCP 옵션 선택", expanded=True):            
+            for option in mcp_options:
+                default_value = option in default_selections
+                mcp_selections[option] = st.checkbox(option, key=f"mcp_{option}", value=default_value)
+            
+        if not any(mcp_selections.values()):
+            mcp_selections["basic"] = True
+
+        if mcp_selections["사용자 설정"]:
+            mcp_info = st.text_area(
+                "MCP 설정을 JSON 형식으로 입력하세요",
+                value=mcp,
+                height=150
+            )
+            logger.info(f"mcp_info: {mcp_info}")
+
+            if mcp_info:
+                mcp_config.mcp_user_config = json.loads(mcp_info)
+                logger.info(f"mcp_user_config: {mcp_config.mcp_user_config}")
+        
+        mcp = mcp_config.load_selected_config(mcp_selections)
+        # logger.info(f"mcp: {mcp}")
+
     chat.update(modelName, debugMode, multiRegion, mcp, reasoningMode, gradingMode, contextualEmbedding, ocr)
 
     st.success(f"Connected to {modelName}", icon="💚")
@@ -272,13 +315,6 @@ if prompt := st.chat_input("메시지를 입력하세요."):
     with st.chat_message("assistant"):
         
         if mode == '일상적인 대화':
-            # with st.status("thinking...", expanded=True, state="running") as status:
-            #     stream = chat.general_conversation(prompt)            
-            #     response = st.write_stream(stream)
-            #     print('response: ', response)
-            #     st.session_state.messages.append({"role": "assistant", "content": response})
-            #     st.rerun()                
-
             output = chat.general_conversation(prompt)            
             if reasoningMode=="Enable":
                 with st.status("thinking...", expanded=True, state="running") as status:    
@@ -316,53 +352,41 @@ if prompt := st.chat_input("메시지를 입력하세요."):
             show_references(reference_docs) 
 
         elif mode == 'Agent':
-            with st.status("thinking...", expanded=True, state="running") as status:
-                response, image_url, reference_docs = chat.run_agent_executor(prompt, "Disable", st)
-                # response = chat.run_agent_executor2(prompt st, debugMode, modelName)
-                st.write(response)
-                # logger.info(f"response: {response}")
+            sessionState = ""
+            chat.references = []
+            chat.image_url = []
+            response, image_url = asyncio.run(chat.run_agent(prompt, "Disable", st))
 
-                if len(image_url):
-                    for url in image_url:
-                        logger.info(f"url: {url}")
+            st.session_state.messages.append({
+                "role": "assistant", 
+                "content": response,
+                "images": image_url if image_url else []
+            })
 
-                        file_name = url[url.rfind('/')+1:]
-                        st.image(url, caption=file_name, use_container_width=True)
-
-                st.session_state.messages.append({
-                    "role": "assistant", 
-                    "content": response,
-                    "images": image_url if image_url else []
-                })
-
-                chat.save_chat_history(prompt, response)
-            
-            show_references(reference_docs) 
+            st.write(response)
+            for url in image_url:
+                    logger.info(f"url: {url}")
+                    file_name = url[url.rfind('/')+1:]
+                    st.image(url, caption=file_name, use_container_width=True)
 
         elif mode == 'Agent (Chat)':
-            with st.status("thinking...", expanded=True, state="running") as status:
-                #revise_prompt = chat.revise_question(prompt, st)
-                #response, image_url, reference_docs = chat.run_agent_executor(revise_prompt, st)
-                response, image_url, reference_docs = chat.run_agent_executor(prompt, "Enable", st)
-                st.write(response)
-                logger.info(f"response: {response}")
+            sessionState = ""
+            chat.references = []
+            chat.image_url = []
+            response, image_url = asyncio.run(chat.run_agent(prompt, "Enable", st))
 
-                if len(image_url):
-                    for url in image_url:
-                        logger.info(f"url: {url}")
+            st.session_state.messages.append({
+                "role": "assistant", 
+                "content": response,
+                "images": image_url if image_url else []
+            })
 
-                        file_name = url[url.rfind('/')+1:]
-                        st.image(url, caption=file_name, use_container_width=True)
-                
-                st.session_state.messages.append({
-                    "role": "assistant", 
-                    "content": response,
-                    "images": image_url if image_url else []
-                })
+            st.write(response)
+            for url in image_url:
+                logger.info(f"url: {url}")
+                file_name = url[url.rfind('/')+1:]
+                st.image(url, caption=file_name, use_container_width=True)     
 
-                chat.save_chat_history(prompt, response)
-            
-            show_references(reference_docs) 
         elif mode == '번역하기 (한국어 / 영어)':
             response = chat.translate_text(prompt, modelName, st)
             st.write(response)

@@ -47,10 +47,8 @@ HUMAN_PROMPT = "\n\nHuman:"
 
 s3_client = boto3.client('s3')  
 
-# Use boto3 session for authentication
-session = boto3.Session(region_name=region)
 
-# Get AWS credentials
+session = boto3.Session(region_name=region)
 credentials = session.get_credentials()
 
 # AWS4Auth settings (for AWS managed OpenSearch)
