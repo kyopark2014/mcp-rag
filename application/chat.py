@@ -175,10 +175,6 @@ logger.info(f"region: {region}")
 s3_prefix = 'docs'
 s3_image_prefix = 'images'
 
-knowledge_base_role = config["knowledge_base_role"] if "knowledge_base_role" in config else None
-if knowledge_base_role is None:
-    raise Exception ("No Knowledge Base Role")
-
 collectionArn = config["collectionArn"] if "collectionArn" in config else None
 if collectionArn is None:
     raise Exception ("No collectionArn")

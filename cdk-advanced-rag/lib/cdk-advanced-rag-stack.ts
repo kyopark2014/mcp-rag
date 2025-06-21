@@ -619,6 +619,7 @@ export class CdkAdvancedRagStack extends cdk.Stack {
       "collectionArn": collectionArn,
       "serverless_opensearch_url": OpenSearchCollection.attrCollectionEndpoint,
       "managed_opensearch_url": opensearch_url,
+      "knowledge_base_role": roleKnowledgeBase.roleArn,
       "s3_bucket": s3Bucket.bucketName,      
       "s3_arn": s3Bucket.bucketArn,
       "sharing_url": 'https://'+distribution_sharing.domainName,
