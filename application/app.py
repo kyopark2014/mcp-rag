@@ -84,7 +84,7 @@ with st.sidebar:
     )
 
     rag_type = st.radio(
-        label="RAG 타입을 선택하세요. ",options=["Knowledge Base", "Opensearch"], index=0
+        label="RAG 타입을 선택하세요. ",options=["Knowledge Base", "OpenSearch"], index=0
     )
     
     uploaded_file = None
@@ -130,7 +130,7 @@ with st.sidebar:
         st.subheader("⚙️ MCP Config")
 
         mcp_options = [ 
-            "basic", "Knowledge Base (Lambda)", "opensearch", "aws_knowledge_base", "사용자 설정"
+            "basic", "Knowledge Base (Lambda)", "aws_knowledge_base", "OpenSearch", "사용자 설정"
         ]
         mcp_selections = {}
         default_selections = ["basic"]

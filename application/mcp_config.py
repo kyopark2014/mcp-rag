@@ -2,6 +2,7 @@ import chat
 import logging
 import sys
 import utils
+import boto3
 
 logging.basicConfig(
     level=logging.INFO,  # Default to INFO level
@@ -20,6 +21,16 @@ opensearch_username = config["opensearch_username"] if "opensearch_username" in 
 opensearch_password = config["opensearch_password"] if "opensearch_password" in config else None
 
 aws_region = config["region"] if "region" in config else "us-west-2"
+
+session = boto3.Session()
+credentials = session.get_credentials()
+
+aws_access_key_id = credentials.access_key
+aws_secret_access_key = credentials.secret_key
+aws_session_token = credentials.token
+
+print(f"aws_access_key_id: {aws_access_key_id}")
+print(f"aws_secret_access_key: {aws_secret_access_key}")
 
 mcp_user_config = {}        
 def load_config(mcp_type):
@@ -413,7 +424,7 @@ def load_config(mcp_type):
             }
         }
     
-    elif mcp_type == "opensearch":
+    elif mcp_type == "OpenSearch":
         return {
             "mcpServers": {
                 "opensearch-mcp-server": {
@@ -423,7 +434,9 @@ def load_config(mcp_type):
                     ],
                     "env": {
                         "OPENSEARCH_URL": managed_opensearch_url,
-                        "AWS_REGION":"us-west-2"
+                        "AWS_REGION": aws_region,
+                        "AWS_ACCESS_KEY_ID": aws_access_key_id,
+                        "AWS_SECRET_ACCESS_KEY": aws_secret_access_key
                     }
                 }
             }

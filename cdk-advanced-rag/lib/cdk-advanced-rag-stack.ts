@@ -133,7 +133,7 @@ export class CdkAdvancedRagStack extends cdk.Stack {
     );  
 
     // lambda-rag
-    const roleLambdaRag = new iam.Role(this, `role-lambda-rag-for-${projectName}`, {
+    const roleLambdaKnowledgeBase = new iam.Role(this, `role-lambda-rag-for-${projectName}`, {
       roleName: `role-lambda-rag-for-${projectName}-${region}`,
       assumedBy: new iam.CompositePrincipal(
         new iam.ServicePrincipal("lambda.amazonaws.com"),
@@ -144,7 +144,7 @@ export class CdkAdvancedRagStack extends cdk.Stack {
       resources: [`arn:aws:logs:${region}:${accountId}:*`],
       actions: ['logs:CreateLogGroup'],
     });        
-    roleLambdaRag.attachInlinePolicy( 
+    roleLambdaKnowledgeBase.attachInlinePolicy( 
       new iam.Policy(this, `create-log-policy-lambda-rag-for-${projectName}`, {
         statements: [CreateLogPolicy],
       }),
@@ -153,19 +153,19 @@ export class CdkAdvancedRagStack extends cdk.Stack {
       resources: [`arn:aws:logs:${region}:${accountId}:log-group:/aws/lambda/*`],
       actions: ["logs:CreateLogStream","logs:PutLogEvents"],
     });        
-    roleLambdaRag.attachInlinePolicy( 
+    roleLambdaKnowledgeBase.attachInlinePolicy( 
       new iam.Policy(this, `create-stream-log-policy-lambda-rag-for-${projectName}`, {
         statements: [CreateLogStreamPolicy],
       }),
     );      
 
     // bedrock
-    roleLambdaRag.attachInlinePolicy( 
+    roleLambdaKnowledgeBase.attachInlinePolicy( 
       new iam.Policy(this, `tool-bedrock-invoke-policy-for-${projectName}`, {
         statements: [bedrockInvokePolicy],
       }),
     );  
-    roleLambdaRag.attachInlinePolicy( 
+    roleLambdaKnowledgeBase.attachInlinePolicy( 
       new iam.Policy(this, `tool-bedrock-agent-opensearch-policy-for-${projectName}`, {
         statements: [knowledgeBaseOpenSearchPolicy],
       }),
@@ -181,7 +181,7 @@ export class CdkAdvancedRagStack extends cdk.Stack {
         statements: [knowledgeBaseBedrockPolicy],
       }),
     );  
-    roleLambdaRag.attachInlinePolicy( 
+    roleLambdaKnowledgeBase.attachInlinePolicy( 
       new iam.Policy(this, `tool-bedrock-agent-bedrock-policy-for-${projectName}`, {
         statements: [knowledgeBaseBedrockPolicy],
       }),
@@ -197,14 +197,14 @@ export class CdkAdvancedRagStack extends cdk.Stack {
         "bedrock:Retrieve"
       ],
     });
-    roleLambdaRag.attachInlinePolicy( 
+    roleLambdaKnowledgeBase.attachInlinePolicy( 
       new iam.Policy(this, `bedrock-agent-policy-lambda-rag-for-${projectName}`, {
         statements: [bedrockAgentPolicy],
       }),
     );
 
     // Add Knowledge Base S3 permissions for Lambda RAG (same as knowledge_base_role)
-    roleLambdaRag.attachInlinePolicy( 
+    roleLambdaKnowledgeBase.attachInlinePolicy( 
       new iam.Policy(this, `knowledge-base-s3-policy-lambda-rag-for-${projectName}`, {
         statements: [bedrockKnowledgeBaseS3Policy],
       }),
@@ -291,7 +291,7 @@ export class CdkAdvancedRagStack extends cdk.Stack {
           ],
           Principal: [
             account.arn,
-            roleLambdaRag.roleArn,
+            roleLambdaKnowledgeBase.roleArn,
             knowledge_base_role.roleArn
           ], 
         },
@@ -570,13 +570,13 @@ export class CdkAdvancedRagStack extends cdk.Stack {
       }, 
     });
 
-    const lambdaRag = new lambda.DockerImageFunction(this, `lambda-rag-for-${projectName}`, {
+    const lambdaRagKnowledgeBase = new lambda.DockerImageFunction(this, `knlowledge-base-for-${projectName}`, {
       description: 'RAG based on Knoeledge Base',
-      functionName: `lambda-rag-for-${projectName}`,
-      code: lambda.DockerImageCode.fromImageAsset(path.join(__dirname, '../../lambda-rag')),
+      functionName: `knlowledge-base-for-${projectName}`,
+      code: lambda.DockerImageCode.fromImageAsset(path.join(__dirname, '../../lambda-rag-knowledge-base')),
       timeout: cdk.Duration.seconds(120),
       memorySize: 4096,
-      role: roleLambdaRag,
+      role: roleLambdaKnowledgeBase,
       environment: {
         bedrock_region: String(region),
         projectName: projectName,
@@ -584,7 +584,7 @@ export class CdkAdvancedRagStack extends cdk.Stack {
       }
     });     
     
-    lambdaRag.grantInvoke(new cdk.aws_iam.ServicePrincipal("bedrock.amazonaws.com"));         
+    lambdaRagKnowledgeBase.grantInvoke(new cdk.aws_iam.ServicePrincipal("bedrock.amazonaws.com"));         
 
     const environment = {
       "projectName": projectName,
