@@ -95,13 +95,26 @@ with st.sidebar:
     reasoningMode = 'Enable' if select_reasoning else 'Disable'
     # logger.info(f"reasoningMode: {reasoningMode}")
 
+    # ocr mode
+    select_ocr = st.checkbox('OCR', value=False)
+    ocr = 'Enable' if select_ocr else 'Disable'
+    
+    # contextual embedding
+    # When OCR is enabled, contextualEmbedding is automatically enabled
+    if select_ocr:
+        select_contextualEmbedding = st.checkbox('Contextual Embedding', value=True, disabled=True)
+    else:
+        select_contextualEmbedding = st.checkbox('Contextual Embedding', value=False)
+    contextualEmbedding = 'Enable' if select_contextualEmbedding else 'Disable'
+    #print('ocr: ', ocr)
+
     uploaded_file = None
     st.subheader("📋 문서 업로드")
     uploaded_file = st.file_uploader("RAG를 위한 파일을 선택합니다.", type=["pdf", "txt", "py", "md", "csv", "json"], key=chat.fileId)
    
     gradingMode = 'Disable'
     mcp = ""
-    chat.update(modelName, debugMode, multiRegion, mcp, reasoningMode, gradingMode)
+    chat.update(modelName, debugMode, multiRegion, mcp, reasoningMode, gradingMode, contextualEmbedding, ocr)
 
     st.success(f"Connected to {modelName}", icon="💚")
     clear_button = st.button("대화 초기화", key="clear")

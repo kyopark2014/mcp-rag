@@ -214,9 +214,11 @@ client = boto3.client(
 mcp_json = ""
 reasoning_mode = 'Disable'
 grading_mode = 'Disable'
+contextual_embedding = 'Disable'
+ocr_mode = 'Disable'
 
-def update(modelName, debugMode, multiRegion, mcp, reasoningMode, gradingMode):    
-    global model_name, model_id, model_type, debug_mode, multi_region, reasoning_mode, grading_mode
+def update(modelName, debugMode, multiRegion, mcp, reasoningMode, gradingMode, contextualEmbedding, ocr):    
+    global model_name, model_id, model_type, debug_mode, multi_region, reasoning_mode, grading_mode, contextual_embedding, ocr_mode
     global models, mcp_json
 
     # load mcp.env    
@@ -250,6 +252,14 @@ def update(modelName, debugMode, multiRegion, mcp, reasoningMode, gradingMode):
         grading_mode = gradingMode
         logger.info(f"grading_mode: {grading_mode}")            
         mcp_env['grading_mode'] = grading_mode
+    
+    if contextual_embedding != contextualEmbedding:
+        contextual_embedding = contextualEmbedding
+        logger.info(f"contextual_embedding: {contextual_embedding}")
+
+    if ocr_mode != ocr:
+        ocr_mode = ocr
+        logger.info(f"ocr_mode: {ocr_mode}")
         
     # update mcp.env    
     utils.save_mcp_env(mcp_env)
@@ -896,7 +906,10 @@ def upload_to_s3(file_bytes, file_name):
         
         user_meta = {  # user-defined metadata
             "content_type": content_type,
-            "model_name": model_name
+            "model_name": model_name,
+            "contextual_embedding": contextual_embedding,
+            "ocr": ocr_mode,
+            "multi_region": multi_region         
         }
         
         response = s3_client.put_object(

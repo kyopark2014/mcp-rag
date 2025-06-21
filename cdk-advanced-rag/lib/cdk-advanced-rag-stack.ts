@@ -21,6 +21,7 @@ const bucketName = `storage-for-${projectName}-${accountId}-${region}`;
 const vectorIndexName = projectName
 
 const s3_prefix = 'docs';
+const s3_capture_prefix = 'captures';
 let opensearch_url = "";
 
 const titan_embedding_v2 = [  // dimension = 1024
@@ -337,6 +338,7 @@ export class CdkAdvancedRagStack extends cdk.Stack {
       ],
       filters: [
         { prefix: s3_prefix+'/' },
+        { prefix: s3_capture_prefix+'/' }
       ]
     });
     lambdaS3eventManager.addEventSource(s3PutEventSource); 
