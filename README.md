@@ -358,3 +358,8 @@ AWS의 knowledge base를 이용하면 별도로 인프라 없어 쉽게 조회�
 "OpenSearch"로 검색하면 OpenSearch MCP를 이용해 조회합니다. Text 검색이므로 아래와 같이 결과가 안나올 수도 있습니다. 
 
 <img src="https://github.com/user-attachments/assets/ec2d7ea1-826d-4471-a5f8-23c5c3872328" width="600">
+
+
+"OpenSearch"에서 "보일러 코드?"와 같이 검색하면 아래와 같이 검색에 성공합니다.
+
+<img src="https://github.com/user-attachments/assets/d9eb4b58-0156-4d41-901f-fa155270a1e0" width="600">
