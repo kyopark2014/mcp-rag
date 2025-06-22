@@ -1,6 +1,6 @@
 # MCP RAG
 
-MCP를 이용하여 RAG를 편리하게 이용할 수 있습니다. 여기에서는 완전 관리형 RAG 서버스인 knowledge base와 관리형 RAG인 OpenSearch에서 MCP를 활용하는 방법과 RAG의 성능향상 기법인 advanced RAG를 활용하는 방법을 설명합니다. 전체적인 architecture는 아래와 같습니다. 여기서는 RAG를 활용할 수 있는 4가지 형태의 MCP를 설명하고 있습니다. 사용자가 문서를 Amazon S3로 업로드하면 Knowledge Base에서는 sync를 통해 문서를 가져와서 Amazon Opensearch Serverless로 문서를 적재합니다. 이때 미리 지정한 embedding model을 이용하고 multi modal을 통해 분석된 정보를 활용할 수 있습니다. 또한 Amazon S3에 문서가 업로드 될때 발생하는 event를 AWS Lambda (s3-event-manager)가 받아서 SQS에 전달한 다음에 순차적으로 AWS Lambda (document-manager)가 embedding 및 multi modal 분석을 통해 얻어진 context를 managed OpenSearch에 적재할 수 있습니다. Amazon EC2에 있는 AI application은 MCP client / server 구조를 이용하여 MCP 서버의 tool들을 활용할 수 있습니다. 이때 RAG를 활용할 때에 아래 그림과 같이 (1) AWS MCP (Knowledge Base) (2) MCP Lambda (Knowledge Base) (3) OpenSearch MCP (4) MCP Lambda (OpenSearch)의 4가지 방법중에 한가지를 선택하여 활용할 수 있습니다. RAG를 이용해 필요한 OpenSearch, lambda, SQS 등의 인프라는 AWS CDK를 이용하여 쉽게 배포할 수 있습니다.
+MCP를 이용하여 RAG를 편리하게 이용할 수 있습니다. 여기에서는 완전 관리형 RAG 서버스인 knowledge base와 관리형 RAG인 OpenSearch에서 MCP를 활용하는 방법과 RAG의 성능향상 기법인 advanced RAG를 활용하는 방법을 설명합니다. 전체적인 architecture는 아래와 같고 RAG를 활용할 수 있는 4가지 형태의 MCP를 설명하고 있습니다. 사용자가 문서를 Amazon S3로 업로드하면 Knowledge Base에서는 sync를 통해 문서를 가져와서 Amazon Opensearch Serverless로 문서를 적재합니다. 이때 미리 지정한 embedding model을 이용하고 multi modal을 통해 분석된 정보를 활용할 수 있습니다. 또한 Amazon S3에 문서가 업로드 될 때 발생하는 event를 AWS Lambda (s3-event-manager)가 받아서 SQS에 전달한 다음에 순차적으로 AWS Lambda (document-manager)가 embedding 및 multi modal 분석을 통해 얻어진 context를 managed OpenSearch에 적재할 수 있습니다. Amazon EC2에 있는 AI application은 MCP client / server 구조를 이용하여 MCP 서버의 tool들을 활용할 수 있습니다. 이때 RAG를 활용할 때에 아래 그림과 같이 (1) AWS MCP (Knowledge Base) (2) MCP Lambda (Knowledge Base) (3) OpenSearch MCP (4) MCP Lambda (OpenSearch)의 4가지 방법중에 한가지를 선택하여 활용할 수 있습니다. RAG를 이용해 필요한 OpenSearch, lambda, SQS 등의 인프라는 AWS CDK를 이용하여 쉽게 배포할 수 있습니다.
 
 ![image](https://github.com/user-attachments/assets/d1296cf3-af42-49e5-8d8a-fa4a2ca9150e)
 
@@ -15,7 +15,9 @@ RAG의 성능을 향상시키기 위한 advanced RAG 기법에 대해 설명합�
 
 ### OCR
 
-문서의 각 페이지를 이미지로 변환한 후에 multimodal을 통해 분석합니다. 이때 맥락에 맞는 이미지 분석을 위해 contextual embedding을 활용합니다. 상세한 코드는 [lambda-document-manager](./lambda-document-manager/lambda-document-manager.py)을 참조합니다. Contextual embedding을 위해 managed OpenSearch를 활용합니다. 여기서 os_client는 아래와 같이 정의하고 OpenSearch index를 생성할때 이용합니다.
+문서의 각 페이지를 이미지로 변환한 후에 multimodal을 통해 분석합니다. 이때 맥락에 맞는 이미지 분석을 위해 contextual embedding을 활용합니다. 상세한 코드는 [lambda-document-manager](./lambda-document-manager/lambda-document-manager.py)을 참조합니다. Contextual embedding을 위해 managed OpenSearch를 활용합니다. 
+
+아래와 같이 os_client는 아래와 같이 정의하고 OpenSearch index를 생성할때 이용합니다.
 
 ```python
 session = boto3.Session(region_name=region)
@@ -268,7 +270,7 @@ for i, doc in enumerate(splitted_docs):
 
 ### MCP Lambda (Knowledge Base)
 
-MCP로 knowledge base를 조회하기 위해서, lambda를 이용하면 사용자의 목적에 맞는 RAG 동작을 구현할 수 있스니다. 아래에서는 Lambda를 이용한 custom MCP 서버를 정의하는것을 설명합니다. Lambda를 이용해 knowledge base를 조회하는 것은 [lambda-knowledge-base](./lambda-knowledge-base/lambda_function.py)에 관련된 코드가 있습니다. 아래와 같이 knowledge_base_search를 tool로 정의합니다.
+MCP로 knowledge base를 조회하기 위해서, lambda를 이용하면 사용자의 목적에 맞는 RAG 동작을 구현할 수 있습니다. 아래에서는 Lambda를 이용한 custom MCP 서버를 정의하는것을 설명합니다. Lambda를 이용해 knowledge base를 조회하는 것은 [lambda-knowledge-base](./lambda-knowledge-base/lambda_function.py)에 관련된 코드가 있습니다. 아래와 같이 knowledge_base_search를 tool로 정의합니다.
 
 ```python
 @mcp.tool()
@@ -314,7 +316,7 @@ def retrieve_knowledge_base(query):
     return payload['response']
 ```
 
-Lambda로 MCP 서버를 구현하면 추가적인 인프라가 필요하지만, grading을 통해 관련도가 낮은 문서를 제외하는 것과 같은 custom 작업을 수행할 수 있고, knowledge base를 조회하지 않고 바로 query를 하므로 더 빠른 응답을 얻을 수 있습니다.
+Lambda로 MCP 서버를 구현하면 추가적인 인프라가 필요하지만, grading을 통해 관련도가 낮은 문서를 제외하는 것과 같은 custom 작업을 수행할 수 있고, knowledge base 리스트를 조회하지 않고 바로 query를 하므로 더 빠른 응답을 얻을 수 있습니다.
 
 ### OpenSearch MCP
 
