@@ -468,6 +468,6 @@ streamlit run application/app.py
 <img src="https://github.com/user-attachments/assets/ec2d7ea1-826d-4471-a5f8-23c5c3872328" width="600">
 
 
-"OpenSearch"에서 "보일러 코드?"와 같이 검색하면 아래와 같이 검색에 성공합니다.
+"OpenSearch MCP"에서 "보일러 코드?"와 같이 검색하면 아래와 같이 검색에 성공합니다.
 
 <img src="https://github.com/user-attachments/assets/d9eb4b58-0156-4d41-901f-fa155270a1e0" width="600">
