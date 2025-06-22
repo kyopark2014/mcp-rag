@@ -5,7 +5,7 @@ MCP를 이용하여 RAG를 편리하게 이용할 수 있습니다. 여기에서
 ![image](https://github.com/user-attachments/assets/d1296cf3-af42-49e5-8d8a-fa4a2ca9150e)
 
 
-OCR은 문서의 페이지들을 캡춰하여 이미지를 생성한 후에 OpenSearch에서 검색하므로, [Agentic RAG 구현하기](https://github.com/kyopark2014/agentic-rag)와 같이 event 형태로 데이터 처리 파이프라인을 만들어서 활용하여야 합니다. 이벤트 처리는 [lambda-s3-event-manager](./lambda-s3-event-manager/lambda_function.py)로 수행하고, 문서의 처리는 [lambda-document-manager](./lambda-document-manager/lambda_function.py)로 구현합니다.
+문서의 각 페이지들을 캡춰하여 이미지를 분석하면 문서 안의 표나 이미지에 대한 좀더 많은 정보를 가져올 수 있습니다. 문서로 부터 페이지 이미지를 추출하여 분석하기 위하여 [Agentic RAG 구현하기](https://github.com/kyopark2014/agentic-rag)와 같이 event 형태로 데이터 처리 파이프라인을 만들어서 활용합니다. 이때, 이벤트 처리는 [lambda-s3-event-manager](./lambda-s3-event-manager/lambda_function.py)로 수행하고, 문서의 처리는 [lambda-document-manager](./lambda-document-manager/lambda_function.py)로 구현합니다.
 
 ![image](https://github.com/user-attachments/assets/d99c8420-fa45-4ad6-8b48-ffc3df1caa30)
 
