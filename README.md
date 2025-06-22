@@ -1,8 +1,6 @@
-# Advanced RAG
+# MCP RAG
 
-여기서는 Advanced RAG를 이용해 RAG 및 Agentic RAG를 구성하는것을 설명합니다. 또한 RAG는 MCP 서버를 이용해 편리하게 이용할 수 있습니다.
-
-
+MCP를 이용하여 RAG를 편리하에 이용할 수 있습니다. 여기에서는 RAG의 성능향상 기법인 advanced RAG를 도입하고, 완전 관리형 RAG 서버스인 knowledge base와 관리형 RAG인 OpenSearch에서 MCP를 활용하는 방법을 설명합니다. 
 
 OCR은 문서의 페이지들을 캡춰하여 이미지를 생성한 후에 OpenSearch에서 검색하므로, [Agentic RAG 구현하기](https://github.com/kyopark2014/agentic-rag)와 같이 event 형태로 데이터 처리 파이프라인을 만들어서 활용하여야 합니다. 이벤트 처리는 [lambda-s3-event-manager](./lambda-s3-event-manager/lambda_function.py)로 수행하고, 문서의 처리는 [lambda-document-manager](./lambda-document-manager/lambda_function.py)로 구현합니다.
 
