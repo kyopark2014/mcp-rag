@@ -154,6 +154,57 @@ def summary_image(llm, img_base64, contextual_text):
     return extracted_text
 ```
 
+## Parent Child Chunking
+
+문서 검색의 정확도를 높이면서 Context를 충분히 사용하기 위해서는 Parent Child Chunking을 적용하여야 합니다. 이를 위해 아래와 같이 RecursiveCharacterTextSplitter로 parent와 child를 각각 나눕니다.
+
+```python
+parent_splitter = RecursiveCharacterTextSplitter(
+    chunk_size=2000,
+    chunk_overlap=100,
+    separators=["\n\n", "\n", ".", " ", ""],
+    length_function = len,
+)
+child_splitter = RecursiveCharacterTextSplitter(
+    chunk_size=400,
+    chunk_overlap=50,
+    length_function = len,
+)
+```
+
+먼저 parent chunk들을 OpenSearch에 넣고 id들을 확인합니다. child chunk의 meta에 parent chunk의 id를 추가해서 검색시 child chunk를 하고, 실제 context는 parent의 id로 조회한 parent의 text를 활용합니다. Contextual text는 실제 사용하게 될 parent chunk의 특징을 설명하여야 하므로, parent chunk로 얻은 contextual text를 child chunk에 추가하여 활용합니다. 이후 child chunk들도 OpenSearch에 등록하여 id들을 확인합니다. parent/child의 id들을 파일 meta에 저장하였다가 문서 업데이트/삭제시에 활용합니다. 
+
+```python
+splitted_docs = parent_splitter.split_documents(docs)
+parent_docs, contexualized_chunks = get_contextual_docs_using_parallel_processing(docs[-1], splitted_docs)
+
+for i, doc in enumerate(parent_docs):
+    doc.metadata["doc_level"] = "parent"
+        
+parent_doc_ids = vectorstore.add_documents(parent_docs, bulk_size = 10000)
+ids = parent_doc_ids
+
+for i, doc in enumerate(splitted_docs):
+    _id = parent_doc_ids[i]
+    child_docs = child_splitter.split_documents([doc])
+    for _doc in child_docs:
+        _doc.metadata["parent_doc_id"] = _id
+        _doc.metadata["doc_level"] = "child"
+
+    contexualized_child_docs = []
+    for _doc in child_docs:
+        contexualized_child_docs.append(
+            Document(
+                page_content=contexualized_chunks[i]+"\n\n"+_doc.page_content,
+                metadata=_doc.metadata
+            )
+        )
+    child_docs = contexualized_child_docs
+
+    child_doc_ids = vectorstore.add_documents(child_docs, bulk_size = 10000)        
+    ids += child_doc_ids           
+```
+
 
 
 
