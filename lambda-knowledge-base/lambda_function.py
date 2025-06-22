@@ -355,6 +355,7 @@ def search_by_knowledge_base(keyword: str, top_k: int) -> str:
                 )    
 
         except Exception as e:
+            knowledge_base_id = ""
             err_msg = traceback.format_exc()
             print('error message: ', err_msg)
             print('Exception type:', type(e).__name__)
