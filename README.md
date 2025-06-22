@@ -11,8 +11,11 @@ OCR은 문서의 페이지들을 캡춰하여 이미지를 생성한 후에 Open
 
 ![image](https://github.com/user-attachments/assets/d99c8420-fa45-4ad6-8b48-ffc3df1caa30)
 
+## Advanced RAG 기법
 
-## OCR
+RAG의 성능을 향상시키기 위한 advanced RAG 기법에 대해 설명합니다. 
+
+### OCR
 
 문서의 각 페이지를 이미지로 변환한 후에 multimodal을 통해 분석합니다. 이때 맥락에 맞는 이미지 분석을 위해 contextual embedding을 활용합니다. 상세한 코드는 [lambda-document-manager](./lambda-document-manager/lambda-document-manager.py)을 참조합니다.
 
@@ -164,7 +167,7 @@ def summary_image(llm, img_base64, contextual_text):
     return extracted_text
 ```
 
-## Parent Child Chunking
+### Parent Child Chunking
 
 문서 검색의 정확도를 높이면서 Context를 충분히 사용하기 위해서는 Parent Child Chunking을 적용하여야 합니다. 이를 위해 아래와 같이 RecursiveCharacterTextSplitter로 parent와 child를 각각 나눕니다.
 
