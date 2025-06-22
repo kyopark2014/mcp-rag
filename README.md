@@ -449,19 +449,15 @@ streamlit run application/app.py
 
 ![image](https://github.com/user-attachments/assets/dbee256b-339c-4292-bd5e-7924176b9c2f)
 
+"AWS MCP (Knowledge Base)"을 선택하면, 아래와 같이 GetKnowledgeBases으로 mcp-rag라는 tag를 가진 knowledge base를 검색한 후에 QueryKnowledgeBases로 검색을 수행합니다. 
+
+<img src="https://github.com/user-attachments/assets/5f0bd428-3286-4c85-a8bd-8846c8f2d94e" width="600">
+
 
 "MCP Lambda (Knowledge Base)"를 선택하고 검색하여 아래와 같이 knowledge_base_search를 이용해 문서 검색한 결과를 얻을 수 있습니다.
 
 <img src="https://github.com/user-attachments/assets/8c5963da-0999-4c83-9827-85d47f17391f" width="600">
 
-
-"AWS MCP (Knowledge Base)"을 선택하면, 아래와 같이 GetKnowledgeBases으로 mcp-rag라는 tag를 가진 knowledge base를 검색한 후에 QueryKnowledgeBases로 검색을 수행합니다. 
-
-<img src="https://github.com/user-attachments/assets/5f0bd428-3286-4c85-a8bd-8846c8f2d94e" width="600">
-
-"MCP Lambda (OpenSearch)"로 검색하면, 아래와 같이 opensearch_search를 이용하여 OpenSearch를 검색한 결과를 얻을 수 있습니다.
-
-<img src="https://github.com/user-attachments/assets/137e029b-5f9c-410c-a05a-cdcf86d6d307" width="600">
 
 "OpenSearch MCP"로 검색하면 OpenSearch MCP를 이용해 조회합니다. Text 검색이므로 아래와 같이 결과가 안나올 수도 있습니다. 
 
@@ -471,3 +467,9 @@ streamlit run application/app.py
 "OpenSearch MCP"에서 "보일러 코드?"와 같이 검색하면 아래와 같이 검색에 성공합니다.
 
 <img src="https://github.com/user-attachments/assets/d9eb4b58-0156-4d41-901f-fa155270a1e0" width="600">
+
+
+"MCP Lambda (OpenSearch)"로 검색하면, 아래와 같이 opensearch_search를 이용하여 OpenSearch를 검색한 결과를 얻을 수 있습니다.
+
+<img src="https://github.com/user-attachments/assets/137e029b-5f9c-410c-a05a-cdcf86d6d307" width="600">
+
