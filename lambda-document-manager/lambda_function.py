@@ -258,12 +258,11 @@ enablePageImageExraction = 'Enable'
 session = boto3.Session(region_name=region)
 credentials = session.get_credentials()
 
-# AWS4Auth settings (for AWS managed OpenSearch)
 awsauth = AWS4Auth(
     credentials.access_key,
     credentials.secret_key,
     region,
-    'es',  # OpenSearch service uses 'es'
+    'es',  
     session_token=credentials.token
 )
 
