@@ -205,6 +205,62 @@ for i, doc in enumerate(splitted_docs):
     ids += child_doc_ids           
 ```
 
+## MCP로 RAG 활용하기
+
+### Knowledge Base 활용
+
+완전 관리하여 RAG 서비스인 knowledge base는 S3와 같은 storage에 대해서 sync 기능을 제공하므로써 편리하게 사용할 수 있습니다. 하지만 OCR이나 contextual embedding을 이용할 경우에는 custom으로 lambda등을 활용하여 직접 파싱후 넣어주여야 합니다. 
+
+MCP로 knowledge base를 조회하기 위해서, lambda를 이용하여 MCP 서버를 정의하거나, awslabs에서 제공하는 MCP 서버를 활용할 수 있습니다. lambda를 이용해 knowledge base를 조회하는 것은 [lambda-knowledge-base](./lambda-knowledge-base/lambda_function.py)을 참조합니다. 이를 [mcp_server_lambda_knowledge_base.py](./application/mcp_server_lambda_knowledge_base.py)와 같이 custom MCP 서버를 정의해 사용할 수 있습니다.
+
+```python
+@mcp.tool()
+def knowledge_base_search(keyword: str) -> list:
+    """
+    Search the knowledge base with the given keyword.
+    keyword: the keyword to search
+    return: the result of search
+    """
+
+    return rag.retrieve_knowledge_base(keyword)
+```
+
+여기서 [mcp_knowledge_base.py](./appliccation/mcp_knowledge_base.py)와 같이 lambda로 직접 request를 보내서 아래와 같이 knowledge base의 문서들을 조회할 수 있습니다.
+
+```python
+def retrieve_knowledge_base(query):
+    lambda_client = boto3.client(
+        service_name='lambda',
+        region_name=bedrock_region
+    )
+    functionName = f"knowledge-base-for-{projectName}"
+
+    mcp_env = utils.load_mcp_env()
+    grading_mode = mcp_env['grading_mode']
+    multi_region = mcp_env['multi_region']
+
+    payload = {
+        'function': 'search_rag',
+        'knowledge_base_name': knowledge_base_name,
+        'keyword': query,
+        'top_k': numberOfDocs,
+        'grading': grading_mode,
+        'model_name': model_name,
+        'multi_region': multi_region
+    }
+
+    output = lambda_client.invoke(
+        FunctionName=functionName,
+        Payload=json.dumps(payload),
+    )
+    payload = json.load(output['Payload'])        
+    return payload['response']
+```
+
+[AWS의 knowledge base MCP](https://awslabs.github.io/mcp/servers/bedrock-kb-retrieval-mcp-server/)를 활용하면 쉽게 연결하여 사용할 수 있습니다. mcp-tag를 이용해 관련된 knowledge base를 조회한 후에 query를 수행합니다. 
+
+AWS의 knowledge base를 이용하면 별도로 인프라 없어 쉽게 조회가 가능하여 편리합니다. 반면에 Lambda로 MCP 서버를 구현할 경우에는 추가적인 인프라가 필요하지만, grading을 통해 관련도가 낮은 문서를 제외하는 것과 같은 custom 작업을 수행할 수 있고, knowledge base를 조회하지 않고 바로 query를 하므로 더 빠른 응답을 얻을 수 있습니다.
+
 
 
 
