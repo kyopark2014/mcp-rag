@@ -333,6 +333,62 @@ def retrieve_knowledge_base(query):
 
 AWS의 knowledge base를 이용하면 별도로 인프라 없어 쉽게 조회가 가능하여 편리합니다. 반면에 Lambda로 MCP 서버를 구현할 경우에는 추가적인 인프라가 필요하지만, grading을 통해 관련도가 낮은 문서를 제외하는 것과 같은 custom 작업을 수행할 수 있고, knowledge base를 조회하지 않고 바로 query를 하므로 더 빠른 응답을 얻을 수 있습니다.
 
+
+## 설치하기
+
+Repository를 clone 합니다.
+
+```text
+git clone https://github.com/kyopark2014/mcp-rag/
+```
+
+필요한 라이브러리를 설치합니다. 
+
+```python
+cd mcp-rag && pip install -r requirements.txt
+```
+
+CDK로 구동이 필요한 인프라인 CloudFront, S3, OpenSearch, Knowledge base, tavily, weather등의 secret을 설치합니다. 만약 cdk boootstraping이 안되어 있다면 설치후 수행합니다.
+
+```text
+cd cdk-mcp-rag/ && cdk deploy --all
+```
+
+설치가 완료되면, 아래와 같이 "CdkMcpRagStack.environmentformcprag"를 복사하여 application/config.json 파일을 생성합니다.
+
+![image](https://github.com/user-attachments/assets/386edb27-ed29-49df-9df1-447b457e70ec)
+
+config.json은 agent의 동작에 필요한 정보를 가지고 있고, [.gitignore](./application/.gitignore)에 의해 git으로 공유 되지 않습니다. 생성된 config.json의 셈플은 아래와 같습니다.
+
+```json
+{
+    "projectName":"mcp-rag",
+    "accountId":"862926741992",
+    "region":"us-west-2",
+    "roleKnowledgeBase":"arn:aws:iam::862926741992:role/role-knowledge-base-for-mcp-rag-us-west-2",
+    "collectionArn":"arn:aws:aoss:us-west-2:862926741992:collection/8krsnuq4it9gpl70i3u6",
+    "serverless_opensearch_url":"https://8krsnuq4it9gpl70i3u6.us-west-2.aoss.amazonaws.com",
+    "managed_opensearch_url":"https://search-mcp-rag-mxtkul3z3qv5iiqprb7q3jx4wy.us-west-2.es.amazonaws.com",
+    "knowledge_base_role":"arn:aws:iam::862926741992:role/role-knowledge-base-for-mcp-rag-us-west-2",
+    "s3_bucket":"storage-for-mcp-rag-862926741992-us-west-2",
+    "s3_arn":"arn:aws:s3:::storage-for-mcp-rag-862926741992-us-west-2",
+    "sharing_url":"https://d3mo4kqj5cjiuy.cloudfront.net"
+ }
+```
+
+이후 [Secret Manager](https://us-west-2.console.aws.amazon.com/secretsmanager/listsecrets?region=us-west-2)에 접속하여 아래와 같은 credential을 입력합니다.
+
+![image](https://github.com/user-attachments/assets/b4dbd00b-02ed-4962-8e8b-7090859acc88)
+
+만약 streamlit이 설치되어 있지 않다면 [streamlit](https://docs.streamlit.io/get-started/installation)을 참조하여 설치합니다. 이후 아래와 같이 실행합니다.
+
+```text
+streamlit run application/app.py
+```
+
+실행하면 아래와 같은 화면이 보여집니다. Agent를 선택하면 실행하고 동작을 확인할 수 있습니다. 
+
+
 ## 실행 결과
 
 여기에서는 아래와 같은 MCP 서버를 제공합니다.
