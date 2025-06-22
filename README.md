@@ -15,9 +15,7 @@ RAG의 성능을 향상시키기 위한 advanced RAG 기법에 대해 설명합�
 
 ### OCR
 
-문서의 각 페이지를 이미지로 변환한 후에 multimodal을 통해 분석합니다. 이때 맥락에 맞는 이미지 분석을 위해 contextual embedding을 활용합니다. 상세한 코드는 [lambda-document-manager](./lambda-document-manager/lambda-document-manager.py)을 참조합니다.
-
-Contextual embedding을 위해 managed OpenSearch를 활용합니다. 여기서 os_client는 아래와 같이 정의하고 OpenSearch index를 생성할때 이용합니다.
+문서의 각 페이지를 이미지로 변환한 후에 multimodal을 통해 분석합니다. 이때 맥락에 맞는 이미지 분석을 위해 contextual embedding을 활용합니다. 상세한 코드는 [lambda-document-manager](./lambda-document-manager/lambda-document-manager.py)을 참조합니다. Contextual embedding을 위해 managed OpenSearch를 활용합니다. 여기서 os_client는 아래와 같이 정의하고 OpenSearch index를 생성할때 이용합니다.
 
 ```python
 session = boto3.Session(region_name=region)
