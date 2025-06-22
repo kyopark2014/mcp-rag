@@ -328,3 +328,26 @@ def retrieve_knowledge_base(query):
 
 AWS의 knowledge base를 이용하면 별도로 인프라 없어 쉽게 조회가 가능하여 편리합니다. 반면에 Lambda로 MCP 서버를 구현할 경우에는 추가적인 인프라가 필요하지만, grading을 통해 관련도가 낮은 문서를 제외하는 것과 같은 custom 작업을 수행할 수 있고, knowledge base를 조회하지 않고 바로 query를 하므로 더 빠른 응답을 얻을 수 있습니다.
 
+## 실행 결과
+
+여기에서는 아래와 같은 MCP 서버를 제공합니다.
+
+![image](https://github.com/user-attachments/assets/0c63b210-0306-4b9a-aca6-b5048be48ee3)
+
+
+"Knowledge base (Lambda)"를 선태하고 검색하여 아래와 같이 knowledge_base_search를 이용해 문서 검색한 결과를 얻을 수 있습니다.
+
+![image](https://github.com/user-attachments/assets/8c5963da-0999-4c83-9827-85d47f17391f)
+
+
+"Knowledge base (Custom)"을 선택하면, 아래와 같이 GetKnowledgeBases으로 mcp-rag라는 tag를 가진 knowledge base를 검색한 후에 QueryKnowledgeBases로 검색을 수행합니다. 
+
+![image](https://github.com/user-attachments/assets/5f0bd428-3286-4c85-a8bd-8846c8f2d94e)
+
+"OpenSearch (Lambda)"로 검색하면, 아래와 같이 opensearch_search를 이용하여 OpenSearch를 검색한 결과를 얻을 수 있습니다.
+
+![image](https://github.com/user-attachments/assets/137e029b-5f9c-410c-a05a-cdcf86d6d307)
+
+"OpenSearch"로 검색하면 OpenSearch MCP를 이용해 조회합니다. Text 검색이므로 아래와 같이 결과가 안나올 수도 있습니다. 
+
+![image](https://github.com/user-attachments/assets/ec2d7ea1-826d-4471-a5f8-23c5c3872328)
