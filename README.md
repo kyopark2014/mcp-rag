@@ -2,6 +2,13 @@
 
 여기서는 Advanced RAG를 이용해 RAG 및 Agentic RAG를 구성하는것을 설명합니다. 또한 RAG는 MCP 서버를 이용해 편리하게 이용할 수 있습니다.
 
+
+
+OCR은 문서의 페이지들을 캡춰하여 이미지를 생성한 후에 OpenSearch에서 검색하므로, [Agentic RAG 구현하기](https://github.com/kyopark2014/agentic-rag)와 같이 event 형태로 데이터 처리 파이프라인을 만들어서 활용하여야 합니다.
+
+![image](https://github.com/user-attachments/assets/d99c8420-fa45-4ad6-8b48-ffc3df1caa30)
+
+
 ## OCR
 
 문서의 각 페이지를 이미지로 변환한 후에 multimodal을 통해 분석합니다. 이때 맥락에 맞는 이미지 분석을 위해 contextual embedding을 활용합니다. 상세한 코드는 [lambda-document-manager](./lambda-document-manager/lambda-document-manager.py)을 참조합니다.
