@@ -337,17 +337,17 @@ AWS의 knowledge base를 이용하면 별도로 인프라 없어 쉽게 조회�
 
 "Knowledge base (Lambda)"를 선태하고 검색하여 아래와 같이 knowledge_base_search를 이용해 문서 검색한 결과를 얻을 수 있습니다.
 
-![image](https://github.com/user-attachments/assets/8c5963da-0999-4c83-9827-85d47f17391f)
+<img src="https://github.com/user-attachments/assets/8c5963da-0999-4c83-9827-85d47f17391f" width="600">
 
 
 "Knowledge base (Custom)"을 선택하면, 아래와 같이 GetKnowledgeBases으로 mcp-rag라는 tag를 가진 knowledge base를 검색한 후에 QueryKnowledgeBases로 검색을 수행합니다. 
 
-![image](https://github.com/user-attachments/assets/5f0bd428-3286-4c85-a8bd-8846c8f2d94e)
+<img src="https://github.com/user-attachments/assets/5f0bd428-3286-4c85-a8bd-8846c8f2d94e" width="600">
 
 "OpenSearch (Lambda)"로 검색하면, 아래와 같이 opensearch_search를 이용하여 OpenSearch를 검색한 결과를 얻을 수 있습니다.
 
-![image](https://github.com/user-attachments/assets/137e029b-5f9c-410c-a05a-cdcf86d6d307)
+<img src="https://github.com/user-attachments/assets/137e029b-5f9c-410c-a05a-cdcf86d6d307" width="600">
 
 "OpenSearch"로 검색하면 OpenSearch MCP를 이용해 조회합니다. Text 검색이므로 아래와 같이 결과가 안나올 수도 있습니다. 
 
-![image](https://github.com/user-attachments/assets/ec2d7ea1-826d-4471-a5f8-23c5c3872328)
+<img src="https://github.com/user-attachments/assets/ec2d7ea1-826d-4471-a5f8-23c5c3872328" width="600">
