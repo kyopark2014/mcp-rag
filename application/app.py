@@ -135,10 +135,10 @@ with st.sidebar:
         st.subheader("⚙️ MCP Config")
 
         mcp_options = [ 
-            "basic", "Knowledge Base (Lambda)", "Knowledge Base (Custom)", "OpenSearch (Lambda)", "OpenSearch", "사용자 설정"
+            "Basic", "AWS MCP (Knowledge Base)", "MCP Lambda (Knowledge Base)", "OpenSearch MCP", "MCP Lambda (OpenSearch)", "사용자 설정"
         ]
         mcp_selections = {}
-        default_selections = ["basic"]
+        default_selections = ["Basic"]
 
         with st.expander("MCP 옵션 선택", expanded=True):            
             for option in mcp_options:
@@ -146,7 +146,7 @@ with st.sidebar:
                 mcp_selections[option] = st.checkbox(option, key=f"mcp_{option}", value=default_value)
             
         if not any(mcp_selections.values()):
-            mcp_selections["basic"] = True
+            mcp_selections["Basic"] = True
 
         if mcp_selections["사용자 설정"]:
             mcp_info = st.text_area(
