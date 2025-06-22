@@ -218,9 +218,132 @@ for i, doc in enumerate(splitted_docs):
     ids += child_doc_ids           
 ```
 
+### Knowledge Base 활용
+
+완전 관리형 RAG 서비스인 knowledge base는 S3와 같은 storage에 대해서 sync 기능을 제공하므로써 편리하게 사용할 수 있습니다. 하지만 OCR이나 contextual embedding을 이용할 경우에는 custom으로 lambda등을 활용하여 직접 파싱후 넣어주여야 합니다. 
+
 ## MCP로 RAG 활용하기
 
-### OpenSearch 활용
+### AWS MCP (Knowledge Base)
+
+[Amazon Bedrock Knowledge Base Retrieval MCP Server](https://awslabs.github.io/mcp/servers/bedrock-kb-retrieval-mcp-server/)와 같이 AWS에서 제공하는 MCP를 이용하여 Amazon Knowledge Base의 문서를 조회할 수 있습니다. 이때 별도로 조회하는 인프라가 필요하지 않으므로 쉽게 구현이 가능합니다. 이때의 MCP 설정은 아래와 같습니다.
+
+```python
+{
+  "mcpServers": {
+    "awslabs.bedrock-kb-retrieval-mcp-server": {
+      "command": "uvx",
+      "args": ["awslabs.bedrock-kb-retrieval-mcp-server@latest"],
+      "env": {
+        "AWS_PROFILE": "your-profile-name",
+        "AWS_REGION": "us-east-1",
+        "FASTMCP_LOG_LEVEL": "ERROR",
+        "KB_INCLUSION_TAG_KEY": "optional-tag-key-to-filter-kbs",
+        "BEDROCK_KB_RERANKING_ENABLED": "false"
+      },
+      "disabled": false,
+      "autoApprove": []
+    }
+  }
+}
+```
+
+[AWS의 knowledge base MCP](https://awslabs.github.io/mcp/servers/bedrock-kb-retrieval-mcp-server/)는 knowledge base를 조회하여 특정 tag(기본은 mcp-tag)를 knowledge base를 찾은 다음에 query를 수행합니다. 따라서 knowledge base를 생성할 때에 아래와 같이 tag를 설정하여야 합니다.
+
+![image](https://github.com/user-attachments/assets/0f6944e3-6d46-4dcb-b258-83d468377a92)
+
+[Amazon Bedrock Knowledge Base Retrieval MCP Server](https://github.com/awslabs/mcp/tree/main/src/bedrock-kb-retrieval-mcp-server)에서는 GetKnowledgeBases를 resource로 호출하는데, LangGraph에서 참조가 안되는 이슈가 있습니다. 따라서, 여기에서는 소스를 복사하여 [mcp_server_knowledge_base.py](./application/mcp_server_knowledge_base.py)와 같이 tool로 수정하여서 활용하고 있습니다. 이때의 MCP 설정은 아래와 같습니다. 
+
+```java
+{
+    "mcpServers": {
+        "knowledge_base_custom": {
+            "command": "python",
+            "args": [
+                "application/mcp_server_knowledge_base.py"
+            ],
+            "env": {
+                "KB_INCLUSION_TAG_KEY": "mcp-rag"
+            }
+        }
+    }
+}
+```
+
+### MCP Lambda (Knowledge Base)
+
+MCP로 knowledge base를 조회하기 위해서, lambda를 이용하면 사용자의 목적에 맞는 RAG 동작을 구현할 수 있스니다. 아래에서는 Lambda를 이용한 custom MCP 서버를 정의하는것을 설명합니다. Lambda를 이용해 knowledge base를 조회하는 것은 [lambda-knowledge-base](./lambda-knowledge-base/lambda_function.py)에 관련된 코드가 있습니다. 아래와 같이 knowledge_base_search를 tool로 정의합니다.
+
+```python
+@mcp.tool()
+def knowledge_base_search(keyword: str) -> list:
+    """
+    Search the knowledge base with the given keyword.
+    keyword: the keyword to search
+    return: the result of search
+    """
+
+    return rag.retrieve_knowledge_base(keyword)
+```
+
+knowledge_base_search는 [mcp_knowledge_base.py](./appliccation/mcp_knowledge_base.py)에 정의된 retrieve_knowledge_base와 같이 lambda를 직접 호출하는 방식으로 knowledge base의 문서들을 조회합니다.
+
+```python
+def retrieve_knowledge_base(query):
+    lambda_client = boto3.client(
+        service_name='lambda',
+        region_name=bedrock_region
+    )
+    functionName = f"knowledge-base-for-{projectName}"
+
+    mcp_env = utils.load_mcp_env()
+    grading_mode = mcp_env['grading_mode']
+    multi_region = mcp_env['multi_region']
+
+    payload = {
+        'function': 'search_rag',
+        'knowledge_base_name': knowledge_base_name,
+        'keyword': query,
+        'top_k': numberOfDocs,
+        'grading': grading_mode,
+        'model_name': model_name,
+        'multi_region': multi_region
+    }
+
+    output = lambda_client.invoke(
+        FunctionName=functionName,
+        Payload=json.dumps(payload),
+    )
+    payload = json.load(output['Payload'])        
+    return payload['response']
+```
+
+Lambda로 MCP 서버를 구현하면 추가적인 인프라가 필요하지만, grading을 통해 관련도가 낮은 문서를 제외하는 것과 같은 custom 작업을 수행할 수 있고, knowledge base를 조회하지 않고 바로 query를 하므로 더 빠른 응답을 얻을 수 있습니다.
+
+### OpenSearch MCP
+
+OpenSearch MCP를 이용하면 추가적인 리소스 없이 바로 OpenSearch를 조회할 수 있습니다. 하지만 2025년 6월 현재는 텍스트 검색만을 제공하여 성능상 제한이 있습니다. OpenSearch MCP를 이용할 때에는 아래 config를 활용합니다.
+
+```python
+{
+    "mcpServers": {
+        "opensearch-mcp-server": {
+            "command": "uvx",
+            "args": [
+                "opensearch-mcp-server-py"
+            ],
+            "env": {
+                "OPENSEARCH_URL": managed_opensearch_url,
+                "AWS_REGION": aws_region,
+                "AWS_ACCESS_KEY_ID": credentials.access_key,
+                "AWS_SECRET_ACCESS_KEY": credentials.secret_key
+            }
+        }
+    }
+}
+```
+
+### MCP Lambda (OpenSearch)
 
 OCR, contextual embedding과 같은 custom한 RAG를 구현할 때에는 직접 OpenSearch에 넣고 조회하여야 합니다. 이를 조회할 때에는 lambda로 custom MCP 서버를 정의하거나 [OpenSearch MCP](https://opensearch.org/blog/introducing-mcp-in-opensearch/)을 사용할 수 있습니다. Lambda로 OpenSearch를 조회하는 것은 [lambda-opensearch](./lambda-opensearch/lambda_function.py)와 같이 구현할 수 있습니다. 이를 custom MCP 서버로 구현할 때에는 [mcp_server_lambda_opensearch.py](./application/mcp_server_lambda_opensearch.py)와 같이 구현합니다.
 
@@ -265,81 +388,6 @@ def retrieve_opensearch(query):
     payload = json.load(output['Payload'])        
     return payload['response']
 ```
-
-OpenSearch MCP를 이용하면 추가적인 리소스 없이 바로 OpenSearch를 조회할 수 있습니다. 하지만 2025년 6월 현재는 텍스트 검색만을 제공하여 성능상 제한이 있습니다. OpenSearch MCP를 이용할 때에는 아래 config를 활용합니다.
-
-```python
-{
-    "mcpServers": {
-        "opensearch-mcp-server": {
-            "command": "uvx",
-            "args": [
-                "opensearch-mcp-server-py"
-            ],
-            "env": {
-                "OPENSEARCH_URL": managed_opensearch_url,
-                "AWS_REGION": aws_region,
-                "AWS_ACCESS_KEY_ID": credentials.access_key,
-                "AWS_SECRET_ACCESS_KEY": credentials.secret_key
-            }
-        }
-    }
-}
-```
-
-### Knowledge Base 활용
-
-완전 관리형 RAG 서비스인 knowledge base는 S3와 같은 storage에 대해서 sync 기능을 제공하므로써 편리하게 사용할 수 있습니다. 하지만 OCR이나 contextual embedding을 이용할 경우에는 custom으로 lambda등을 활용하여 직접 파싱후 넣어주여야 합니다. 
-
-MCP로 knowledge base를 조회하기 위해서, lambda를 이용하여 MCP 서버를 정의하거나, awslabs에서 제공하는 MCP 서버를 활용할 수 있습니다. lambda를 이용해 knowledge base를 조회하는 것은 [lambda-knowledge-base](./lambda-knowledge-base/lambda_function.py)을 참조합니다. 이를 [mcp_server_lambda_knowledge_base.py](./application/mcp_server_lambda_knowledge_base.py)와 같이 custom MCP 서버를 정의해 사용할 수 있습니다.
-
-```python
-@mcp.tool()
-def knowledge_base_search(keyword: str) -> list:
-    """
-    Search the knowledge base with the given keyword.
-    keyword: the keyword to search
-    return: the result of search
-    """
-
-    return rag.retrieve_knowledge_base(keyword)
-```
-
-여기서 [mcp_knowledge_base.py](./appliccation/mcp_knowledge_base.py)와 같이 lambda로 직접 request를 보내서 아래와 같이 knowledge base의 문서들을 조회할 수 있습니다.
-
-```python
-def retrieve_knowledge_base(query):
-    lambda_client = boto3.client(
-        service_name='lambda',
-        region_name=bedrock_region
-    )
-    functionName = f"knowledge-base-for-{projectName}"
-
-    mcp_env = utils.load_mcp_env()
-    grading_mode = mcp_env['grading_mode']
-    multi_region = mcp_env['multi_region']
-
-    payload = {
-        'function': 'search_rag',
-        'knowledge_base_name': knowledge_base_name,
-        'keyword': query,
-        'top_k': numberOfDocs,
-        'grading': grading_mode,
-        'model_name': model_name,
-        'multi_region': multi_region
-    }
-
-    output = lambda_client.invoke(
-        FunctionName=functionName,
-        Payload=json.dumps(payload),
-    )
-    payload = json.load(output['Payload'])        
-    return payload['response']
-```
-
-[AWS의 knowledge base MCP](https://awslabs.github.io/mcp/servers/bedrock-kb-retrieval-mcp-server/)를 활용하면 쉽게 연결하여 사용할 수 있습니다. mcp-tag를 이용해 관련된 knowledge base를 조회한 후에 query를 수행합니다. 
-
-AWS의 knowledge base를 이용하면 별도로 인프라 없어 쉽게 조회가 가능하여 편리합니다. 반면에 Lambda로 MCP 서버를 구현할 경우에는 추가적인 인프라가 필요하지만, grading을 통해 관련도가 낮은 문서를 제외하는 것과 같은 custom 작업을 수행할 수 있고, knowledge base를 조회하지 않고 바로 query를 하므로 더 빠른 응답을 얻을 수 있습니다.
 
 
 ## 설치하기
