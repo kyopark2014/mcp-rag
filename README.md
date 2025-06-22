@@ -4,7 +4,7 @@
 
 
 
-OCR은 문서의 페이지들을 캡춰하여 이미지를 생성한 후에 OpenSearch에서 검색하므로, [Agentic RAG 구현하기](https://github.com/kyopark2014/agentic-rag)와 같이 event 형태로 데이터 처리 파이프라인을 만들어서 활용하여야 합니다.
+OCR은 문서의 페이지들을 캡춰하여 이미지를 생성한 후에 OpenSearch에서 검색하므로, [Agentic RAG 구현하기](https://github.com/kyopark2014/agentic-rag)와 같이 event 형태로 데이터 처리 파이프라인을 만들어서 활용하여야 합니다. 이벤트 처리는 [lambda-s3-event-manager](./lambda-s3-event-manager/lambda_function.py)로 수행하고, 문서의 처리는 [lambda-document-manager](./lambda-document-manager/lambda_function.py)로 구현합니다.
 
 ![image](https://github.com/user-attachments/assets/d99c8420-fa45-4ad6-8b48-ffc3df1caa30)
 
