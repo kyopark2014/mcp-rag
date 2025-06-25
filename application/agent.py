@@ -32,7 +32,7 @@ index = 0
 
 def add_notification(container, message):
     global index
-    container[index].info(message)
+    container['notification'][index].info(message)
     index += 1
 
 def get_status_msg(status):
@@ -292,7 +292,6 @@ async def call_model(state: State, config):
     
     image_url = state['image_url'] if 'image_url' in state else []
 
-    status_container = config.get("configurable", {}).get("status_container", None)
     containers = config.get("configurable", {}).get("containers", None)
     
     tools = config.get("configurable", {}).get("tools", None)
@@ -333,9 +332,9 @@ async def call_model(state: State, config):
 
     if isinstance(last_message, AIMessage) and last_message.content:
         if chat.debug_mode == "Enable":
-            status_container.info(get_status_msg(f"{last_message.name}"))
-            add_notification(containers, f"{last_message.content[:800]}")
-            response_msg.append(last_message.content[:800])    
+            containers['status'].info(get_status_msg(f"{last_message.name}"))
+            add_notification(containers, f"{last_message.content}")
+            response_msg.append(last_message.content)    
     
     if system_prompt:
         system = system_prompt
@@ -376,7 +375,6 @@ async def should_continue(state: State, config) -> Literal["continue", "end"]:
     messages = state["messages"]    
     last_message = messages[-1]
 
-    status_container = config.get("configurable", {}).get("status_container", None)
     containers = config.get("configurable", {}).get("containers", None)
     
     if isinstance(last_message, AIMessage) and last_message.tool_calls:
@@ -396,7 +394,7 @@ async def should_continue(state: State, config) -> Literal["continue", "end"]:
             add_notification(containers, f"{tool_name}: {tool_args}")
         
         if chat.debug_mode == "Enable":
-            status_container.info(get_status_msg(f"{tool_name}"))
+            containers['status'].info(get_status_msg(f"{tool_name}"))
             if "code" in tool_args:
                 logger.info(f"code: {tool_args['code']}")
                 add_notification(containers, f"{tool_args['code']}")
@@ -405,7 +403,7 @@ async def should_continue(state: State, config) -> Literal["continue", "end"]:
         return "continue"
     else:
         if chat.debug_mode == "Enable":
-            status_container.info(get_status_msg("end)"))
+            containers['status'].info(get_status_msg("end)"))
 
         logger.info(f"--- END ---")
         return "end"
@@ -510,7 +508,7 @@ def extract_reference(response):
                 pass
     return references
 
-async def run(question, tools, status_container, containers, historyMode):
+async def run(question, tools, containers, historyMode):
     global status_msg, response_msg, references, image_urls
     status_msg = []
     response_msg = []
@@ -518,14 +516,13 @@ async def run(question, tools, status_container, containers, historyMode):
     image_urls = []
 
     if chat.debug_mode == "Enable":
-        status_container.info(get_status_msg("(start"))
+        containers["status"].info(get_status_msg("(start"))
 
     if historyMode == "Enable":
         app = buildChatAgentWithHistory(tools)
         config = {
             "recursion_limit": 50,
             "configurable": {"thread_id": chat.userId},
-            "status_container": status_container,
             "containers": containers,
             "tools": tools
         }
@@ -533,7 +530,6 @@ async def run(question, tools, status_container, containers, historyMode):
         app = buildChatAgent(tools)
         config = {
             "recursion_limit": 50,
-            "status_container": status_container,
             "containers": containers,
             "tools": tools
         }
@@ -582,25 +578,20 @@ async def run(question, tools, status_container, containers, historyMode):
 
     return result, image_url
 
-async def run_task(question, tools, system_prompt, status_container, response_container, key_container, historyMode, previous_status_msg, previous_response_msg):
-    global status_msg, response_msg
+async def run_task(question, tools, system_prompt, containers, historyMode, previous_status_msg, previous_response_msg):
+    global status_msg, response_msg, references, image_urls
     status_msg = previous_status_msg
     response_msg = previous_response_msg
-    global references
-    references = []
-    image_urls = []
 
     if chat.debug_mode == "Enable":
-        status_container.info(get_status_msg("(start"))
+        containers["status"].info(get_status_msg("(start"))
 
     if historyMode == "Enable":
         app = buildChatAgentWithHistory(tools)
         config = {
             "recursion_limit": 50,
             "configurable": {"thread_id": chat.userId},
-            "status_container": status_container,
-            "response_container": response_container,
-            "key_container": key_container,
+            "containers": containers,
             "tools": tools,
             "system_prompt": system_prompt
         }
@@ -608,9 +599,7 @@ async def run_task(question, tools, system_prompt, status_container, response_co
         app = buildChatAgent(tools)
         config = {
             "recursion_limit": 50,
-            "status_container": status_container,
-            "response_container": response_container,
-            "key_container": key_container,
+            "containers": containers,
             "tools": tools,
             "system_prompt": system_prompt
         }
