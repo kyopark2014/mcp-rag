@@ -28,6 +28,13 @@ s3_prefix = "docs"
 capture_prefix = "captures"
 
 status_msg = []
+index = 0
+
+def add_notification(container, message):
+    global index
+    container[index].info(message)
+    index += 1
+
 def get_status_msg(status):
     global status_msg
     status_msg.append(status)
@@ -241,6 +248,8 @@ def get_tool_info(tool_name, tool_content):
         try:
             if isinstance(tool_content, dict):
                 json_data = tool_content
+            elif isinstance(tool_content, list):
+                json_data = tool_content
             else:
                 json_data = json.loads(tool_content)
             
@@ -284,7 +293,8 @@ async def call_model(state: State, config):
     image_url = state['image_url'] if 'image_url' in state else []
 
     status_container = config.get("configurable", {}).get("status_container", None)
-    response_container = config.get("configurable", {}).get("response_container", None)
+    containers = config.get("configurable", {}).get("containers", None)
+    
     tools = config.get("configurable", {}).get("tools", None)
     system_prompt = config.get("configurable", {}).get("system_prompt", None)
     
@@ -294,7 +304,7 @@ async def call_model(state: State, config):
         logger.info(f"tool_name: {tool_name}, content: {tool_content[:800]}")
 
         if chat.debug_mode == "Enable":
-            response_container.info(f"{tool_name}: {str(tool_content)}")
+            add_notification(containers, f"{tool_name}: {str(tool_content)}")
             response_msg.append(f"{tool_name}: {str(tool_content)}")
 
         global references
@@ -309,7 +319,7 @@ async def call_model(state: State, config):
             logger.info(f"urls: {urls}")
 
             if chat.debug_mode == "Enable":
-                response_container.info(f"Added path to image_url: {urls}")
+                add_notification(containers, f"Added path to image_url: {urls}")
                 response_msg.append(f"Added path to image_url: {urls}")
 
         if content:  # manupulate the output of tool message
@@ -321,14 +331,10 @@ async def call_model(state: State, config):
             )
             state["messages"] = messages
 
-        if chat.debug_mode == "Enable":
-            response_container.info(f"{tool_name}: {tool_content[:800]}")
-            response_msg.append(f"{tool_name}: {tool_content[:800]}")
-
     if isinstance(last_message, AIMessage) and last_message.content:
         if chat.debug_mode == "Enable":
             status_container.info(get_status_msg(f"{last_message.name}"))
-            response_container.info(f"{last_message.content[:800]}")
+            add_notification(containers, f"{last_message.content[:800]}")
             response_msg.append(last_message.content[:800])    
     
     if system_prompt:
@@ -362,7 +368,7 @@ async def call_model(state: State, config):
         err_msg = traceback.format_exc()
         logger.info(f"error message: {err_msg}")
 
-    return {"messages": [response], "image_url": image_url}
+    return {"messages": [response], "image_url": image_url, "index": index}
 
 async def should_continue(state: State, config) -> Literal["continue", "end"]:
     logger.info(f"###### should_continue ######")
@@ -371,8 +377,7 @@ async def should_continue(state: State, config) -> Literal["continue", "end"]:
     last_message = messages[-1]
 
     status_container = config.get("configurable", {}).get("status_container", None)
-    response_container = config.get("configurable", {}).get("response_container", None)
-    key_container = config.get("configurable", {}).get("key_container", None)
+    containers = config.get("configurable", {}).get("containers", None)
     
     if isinstance(last_message, AIMessage) and last_message.tool_calls:
         tool_name = last_message.tool_calls[-1]['name']
@@ -383,18 +388,18 @@ async def should_continue(state: State, config) -> Literal["continue", "end"]:
         if last_message.content:
             logger.info(f"last_message: {last_message.content}")
             if chat.debug_mode == "Enable":
-                response_container.info(f"{last_message.content}")
+                add_notification(containers, f"{last_message.content}")
                 response_msg.append(last_message.content)
 
         logger.info(f"tool_name: {tool_name}, tool_args: {tool_args}")
         if chat.debug_mode == "Enable":
-            key_container.info(f"{tool_name}: {tool_args}")
+            add_notification(containers, f"{tool_name}: {tool_args}")
         
         if chat.debug_mode == "Enable":
             status_container.info(get_status_msg(f"{tool_name}"))
             if "code" in tool_args:
                 logger.info(f"code: {tool_args['code']}")
-                response_container.code(tool_args['code'])
+                add_notification(containers, f"{tool_args['code']}")
                 response_msg.append(f"{tool_args['code']}")
 
         return "continue"
@@ -462,8 +467,6 @@ def extract_reference(response):
                 else:
                     tool_result = re.content
                     # logger.info(f"tool_result (not JSON): {tool_result[:200]}")
-
-                
                                 
                 if isinstance(tool_result, list):
                     logger.info(f"size of tool_result: {len(tool_result)}")
@@ -507,7 +510,7 @@ def extract_reference(response):
                 pass
     return references
 
-async def run(question, tools, status_container, response_container, key_container, historyMode):
+async def run(question, tools, status_container, containers, historyMode):
     global status_msg, response_msg, references, image_urls
     status_msg = []
     response_msg = []
@@ -523,8 +526,7 @@ async def run(question, tools, status_container, response_container, key_contain
             "recursion_limit": 50,
             "configurable": {"thread_id": chat.userId},
             "status_container": status_container,
-            "response_container": response_container,
-            "key_container": key_container,
+            "containers": containers,
             "tools": tools
         }
     else:
@@ -532,14 +534,16 @@ async def run(question, tools, status_container, response_container, key_contain
         config = {
             "recursion_limit": 50,
             "status_container": status_container,
-            "response_container": response_container,
-            "key_container": key_container,
+            "containers": containers,
             "tools": tools
         }
     
     inputs = {
         "messages": [HumanMessage(content=question)]
     }
+    
+    global index
+    index = 0
 
     value = result = None
     async for output in app.astream(inputs, config):
