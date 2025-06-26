@@ -619,7 +619,7 @@ async def run_task(question, tools, system_prompt, containers, historyMode, prev
         for key, value in output.items():
             logger.info(f"--> key: {key}, value: {value}")
             
-            if key == "messages":
+            if key == "messages" or key == "agent":
                 if isinstance(value, dict) and "messages" in value:
                     message = value["messages"]
                     final_output = value
