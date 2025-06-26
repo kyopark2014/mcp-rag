@@ -542,19 +542,23 @@ async def run(question, tools, containers, historyMode):
     index = 0
 
     value = result = None
+    final_output = None
     async for output in app.astream(inputs, config):
         for key, value in output.items():
             logger.info(f"--> key: {key}, value: {value}")
 
-            if key == "messages":
+            if key == "messages" or key == "agent":
                 if isinstance(value, dict) and "messages" in value:
                     message = value["messages"]
+                    final_output = value
                 elif isinstance(value, list):
                     value = {"messages": value, "image_url": []}
                     message = value["messages"]
+                    final_output = value
                 else:
                     value = {"messages": [value], "image_url": []}
                     message = value["messages"]
+                    final_output = value
 
                 refs = extract_reference(message)
                 if refs:
@@ -562,11 +566,12 @@ async def run(question, tools, containers, historyMode):
                         references.append(r)
                         logger.info(f"r: {r}")
                 
-    if value and "messages" in value and len(value["messages"]) > 0:
-        result = value["messages"][-1].content
+    if final_output and "messages" in final_output and len(final_output["messages"]) > 0:
+        result = final_output["messages"][-1].content
     else:
         result = "답변을 찾지 못하였습니다."
 
+    logger.info(f"result: {final_output}")
     logger.info(f"references: {references}")
     if references:
         ref = "\n\n### Reference\n"
@@ -574,7 +579,7 @@ async def run(question, tools, containers, historyMode):
             ref += f"{i+1}. [{reference['title']}]({reference['url']}), {reference['content']}...\n"    
         result += ref
 
-    image_url = value["image_url"] if value and "image_url" in value else []
+    image_url = final_output["image_url"] if final_output and "image_url" in final_output else []
 
     return result, image_url
 
@@ -617,12 +622,15 @@ async def run_task(question, tools, system_prompt, containers, historyMode, prev
             if key == "messages":
                 if isinstance(value, dict) and "messages" in value:
                     message = value["messages"]
+                    final_output = value
                 elif isinstance(value, list):
                     value = {"messages": value, "image_url": []}
                     message = value["messages"]
+                    final_output = value
                 else:
                     value = {"messages": [value], "image_url": []}
                     message = value["messages"]
+                    final_output = value
 
                 refs = extract_reference(message)
                 if refs:
@@ -630,8 +638,8 @@ async def run_task(question, tools, system_prompt, containers, historyMode, prev
                         references.append(r)
                         logger.info(f"r: {r}")
                 
-    if value and "messages" in value and len(value["messages"]) > 0:
-        result = value["messages"][-1].content
+    if final_output and "messages" in final_output and len(final_output["messages"]) > 0:
+        result = final_output["messages"][-1].content
     else:
         result = "답변을 찾지 못하였습니다."
 
