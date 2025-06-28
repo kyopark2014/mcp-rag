@@ -11,3 +11,5 @@ python-docx>=0.8.11
 PyMuPDF>=1.23.0
 pycryptodome>=3.18.0
 Pillow>=9.0.0
+strands-agents>=0.1.0
+strands-agents-tools>=0.1.0

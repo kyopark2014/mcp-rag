@@ -9,7 +9,8 @@ import logging
 import sys
 import mcp_config 
 import json
-import agent
+import langgraph_agent
+import strands_agent
 
 logging.basicConfig(
     level=logging.INFO,  # Default to INFO level
@@ -88,6 +89,11 @@ with st.sidebar:
         rag_type = st.radio(
             label="RAG 타입을 선택하세요. ",options=["Knowledge Base", "OpenSearch"], index=0
         )
+
+    if mode=='Agent' or mode=='Agent (Chat)':
+        agent_type = st.radio(
+            label="Agent 타입을 선택하세요. ",options=["LangGraph", "Strands"], index=0
+        )
     
     uploaded_file = None
     if mode == '이미지 분석':
@@ -163,6 +169,9 @@ with st.sidebar:
         
         mcp = mcp_config.load_selected_config(mcp_selections)
         # logger.info(f"mcp: {mcp}")
+
+        selected_mcp_tools = [tool for tool in mcp_options if mcp_selections.get(tool, False)]        
+        strands_agent.update([], selected_mcp_tools)
 
     chat.update(modelName, debugMode, multiRegion, mcp, reasoningMode, gradingMode, contextualEmbedding, ocr)
 
@@ -371,11 +380,15 @@ if prompt := st.chat_input("메시지를 입력하세요."):
                     "status": st.empty(),
                     "notification": [st.empty() for _ in range(100)]
                 }
-                response, image_url = asyncio.run(agent.run_agent(prompt, history_mode, containers))
+
+                if agent_type == "LangGraph":
+                    response, image_url = asyncio.run(langgraph_agent.run_agent(prompt, history_mode, containers))    
+                else:
+                    response, image_url = asyncio.run(strands_agent.run_agent(prompt, history_mode, containers))
             
-            if agent.response_msg:
-                with st.expander(f"수행 결과"):
-                    st.markdown('\n\n'.join(agent.response_msg))
+            # if langgraph_agent.response_msg:
+            #     with st.expander(f"수행 결과"):
+            #         st.markdown('\n\n'.join(langgraph_agent.response_msg))
 
             st.session_state.messages.append({
                 "role": "assistant", 
@@ -383,11 +396,13 @@ if prompt := st.chat_input("메시지를 입력하세요."):
                 "images": image_url if image_url else []
             })
 
-            st.write(response)
+            if agent_type == "LangGraph":
+                st.write(response)
+
             for url in image_url:
-                    logger.info(f"url: {url}")
-                    file_name = url[url.rfind('/')+1:]
-                    st.image(url, caption=file_name, use_container_width=True)
+                logger.info(f"url: {url}")
+                file_name = url[url.rfind('/')+1:]
+                st.image(url, caption=file_name, use_container_width=True)
 
         elif mode == '번역하기 (한국어 / 영어)':
             response = chat.translate_text(prompt, modelName, st)
