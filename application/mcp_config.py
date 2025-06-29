@@ -99,15 +99,12 @@ def load_config(mcp_type):
     elif mcp_type == "사용자 설정":
         return mcp_user_config
 
-def load_selected_config(mcp_selections: dict[str, bool]):
-    #logger.info(f"mcp_selections: {mcp_selections}")
+def load_selected_config(mcp_servers: dict):
+    logger.info(f"mcp_servers: {mcp_servers}")
+    
     loaded_config = {}
-
-    selected_servers = [server for server, is_selected in mcp_selections.items() if is_selected]
-    # logger.info(f"selected_servers: {selected_servers}")
-
-    for server in selected_servers:
-        # logger.info(f"server: {server}")
+    for server in mcp_servers:
+        logger.info(f"server: {server}")
 
         if server == "MCP Lambda (Knowledge Base)":
             config = load_config('knowledge_base_lambda')

@@ -167,13 +167,9 @@ with st.sidebar:
                 mcp_config.mcp_user_config = json.loads(mcp_info)
                 logger.info(f"mcp_user_config: {mcp_config.mcp_user_config}")
         
-        mcp = mcp_config.load_selected_config(mcp_selections)
-        # logger.info(f"mcp: {mcp}")
+        mcp_servers = [server for server, is_selected in mcp_selections.items() if is_selected]
 
-        selected_mcp_tools = [tool for tool in mcp_options if mcp_selections.get(tool, False)]        
-        strands_agent.update([], selected_mcp_tools)
-
-    chat.update(modelName, debugMode, multiRegion, mcp, reasoningMode, gradingMode, contextualEmbedding, ocr)
+    chat.update(modelName, debugMode, multiRegion, reasoningMode, gradingMode, contextualEmbedding, ocr)    
 
     st.success(f"Connected to {modelName}", icon="💚")
     clear_button = st.button("대화 초기화", key="clear")
@@ -382,9 +378,9 @@ if prompt := st.chat_input("메시지를 입력하세요."):
                 }
 
                 if agent_type == "LangGraph":
-                    response, image_url = asyncio.run(langgraph_agent.run_agent(prompt, history_mode, containers))    
+                    response, image_url = asyncio.run(langgraph_agent.run_agent(prompt, mcp_servers, history_mode, containers))    
                 else:
-                    response, image_url = asyncio.run(strands_agent.run_agent(prompt, history_mode, containers))
+                    response, image_url = asyncio.run(strands_agent.run_agent(prompt, [], mcp_servers, history_mode, containers))
             
             # if langgraph_agent.response_msg:
             #     with st.expander(f"수행 결과"):

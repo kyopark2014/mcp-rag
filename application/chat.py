@@ -143,13 +143,12 @@ client = boto3.client(
     region_name=bedrock_region
 )  
 
-mcp_json = {}
 reasoning_mode = 'Disable'
 grading_mode = 'Disable'
 contextual_embedding = 'Disable'
 ocr_mode = 'Disable'
 
-def update(modelName, debugMode, multiRegion, mcp, reasoningMode, gradingMode, contextualEmbedding, ocr):    
+def update(modelName, debugMode, multiRegion, reasoningMode, gradingMode, contextualEmbedding, ocr):    
     global model_name, model_id, model_type, debug_mode, multi_region, reasoning_mode, grading_mode, contextual_embedding, ocr_mode
     global models, mcp_json
 
@@ -168,9 +167,6 @@ def update(modelName, debugMode, multiRegion, mcp, reasoningMode, gradingMode, c
         debug_mode = debugMode
         logger.info(f"debug_mode: {debug_mode}")
         
-    mcp_json = mcp
-    logger.info(f"mcp_json: {mcp_json}")
-
     if reasoning_mode != reasoningMode:
         reasoning_mode = reasoningMode
         logger.info(f"reasoning_mode: {reasoning_mode}")    
