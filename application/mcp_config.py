@@ -27,6 +27,16 @@ credentials = session.get_credentials()
 
 mcp_user_config = {}        
 def load_config(mcp_type):
+    if mcp_type == "MCP Lambda (Knowledge Base)":
+        mcp_type = 'knowledge_base_lambda'
+    elif mcp_type == "AWS MCP (Knowledge Base)":
+        mcp_type = 'knowledge_base_custom'
+    elif mcp_type == "MCP Lambda (OpenSearch)":
+        mcp_type = 'openSearch_lambda'
+    elif mcp_type == "OpenSearch MCP":
+        mcp_type = 'OpenSearch'
+    logger.info(f"mcp_type: {mcp_type}")
+
     if mcp_type == "Basic":
         return {
             "mcpServers": {
@@ -106,23 +116,12 @@ def load_selected_config(mcp_servers: dict):
     for server in mcp_servers:
         logger.info(f"server: {server}")
 
-        if server == "MCP Lambda (Knowledge Base)":
-            config = load_config('knowledge_base_lambda')
-        elif server == "AWS MCP (Knowledge Base)":
-            config = load_config('knowledge_base_custom')
-        elif server == "MCP Lambda (OpenSearch)":
-            config = load_config('openSearch_lambda')
-        elif server == "OpenSearch MCP":
-            config = load_config('OpenSearch')
-        else:
-            config = load_config(server)
-        logger.info(f"config: {config}")
+        config = load_config(server)
+        # logger.info(f"config: {config}")
         
         if config:
             loaded_config.update(config["mcpServers"])
-
-    # logger.info(f"loaded_config: {loaded_config}")
-        
+    # logger.info(f"loaded_config: {loaded_config}")        
     return {
         "mcpServers": loaded_config
     }
