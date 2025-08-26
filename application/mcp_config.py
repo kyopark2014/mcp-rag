@@ -37,7 +37,7 @@ def load_config(mcp_type):
         mcp_type = 'openSearch_lambda'
     elif mcp_type == "OpenSearch MCP":
         mcp_type = 'OpenSearch'
-    elif mcp_type == "Knowledge Base Retriever":
+    elif mcp_type == "MCP Knowledge Base Retriever":
         mcp_type = 'mcp_server_retrieve'
 
     logger.info(f"mcp_type: {mcp_type}")

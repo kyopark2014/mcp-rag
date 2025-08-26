@@ -2,6 +2,8 @@ import traceback
 import time
 import boto3
 import utils
+import json
+import os
 
 from langchain_aws import AmazonKnowledgeBasesRetriever
 from urllib import parse
@@ -249,6 +251,18 @@ def initiate_knowledge_base():
                     #raise Exception ("Not able to create the knowledge base")      
                 
     logger.info(f"knowledge_base_name: {knowledge_base_name}, knowledge_base_id: {knowledge_base_id}")    
+
+    if knowledge_base_id:
+        try:
+            config['knowledge_base_id'] = knowledge_base_id                
+            
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            config_path = os.path.join(script_dir, "config.json")
+            with open(config_path, "w") as f:
+                json.dump(config, f, indent=2)
+            print(f"update knowledge_base_id to {knowledge_base_id} in config.json")
+        except Exception as e:
+            print(f"Warning: Failed to update config.json with knowledge_base_id: {e}")        
     
     #########################
     # data source      
