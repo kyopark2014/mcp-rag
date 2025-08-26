@@ -57,6 +57,8 @@ mode_descriptions = {
     ]
 }
 
+agentType = None
+
 with st.sidebar:
     st.title("🔮 Menu")
     
@@ -64,8 +66,8 @@ with st.sidebar:
         "Amazon Bedrock을 이용해 다양한 형태의 대화를 구현합니다." 
         "여기에서는 일상적인 대화와 각종 툴을 이용해 Agent를 구현할 수 있습니다." 
         "또한 번역이나 문법 확인과 같은 용도로 사용할 수 있습니다."
-        "주요 코드는 LangChain과 LangGraph를 이용해 구현되었습니다.\n"
-        "상세한 코드는 [Github](https://github.com/kyopark2014/llm-streamlit)을 참조하세요."
+        "주요 코드는 LangChain/LangGraph, Strands SDK를 이용해 구현되었습니다.\n"
+        "상세한 코드는 [Github](https://github.com/kyopark2014/mcp-rag)을 참조하세요."
     )
 
     st.subheader("🐱 대화 형태")
@@ -91,8 +93,8 @@ with st.sidebar:
         )
 
     if mode=='Agent' or mode=='Agent (Chat)':
-        agent_type = st.radio(
-            label="Agent 타입을 선택하세요. ",options=["LangGraph", "Strands"], index=0
+        agentType = st.radio(
+            label="Agent 타입을 선택하세요. ",options=["langgraph", "strands"], index=0
         )
     
     uploaded_file = None
@@ -142,7 +144,7 @@ with st.sidebar:
         st.subheader("⚙️ MCP Config")
 
         mcp_options = [ 
-            "Basic", "AWS MCP (Knowledge Base)", "MCP Lambda (Knowledge Base)", "OpenSearch MCP", "MCP Lambda (OpenSearch)", "사용자 설정"
+            "Basic", "Knowledge Base Retriever", "AWS MCP (Knowledge Base)", "MCP Lambda (Knowledge Base)", "OpenSearch MCP", "MCP Lambda (OpenSearch)", "사용자 설정"
         ]
         mcp_selections = {}
         default_selections = ["Basic"]
@@ -374,14 +376,24 @@ if prompt := st.chat_input("메시지를 입력하세요."):
                 containers = {
                     "tools": st.empty(),
                     "status": st.empty(),
-                    "notification": [st.empty() for _ in range(500)]
+                    "notification": [st.empty() for _ in range(1000)]
                 }
 
-                if agent_type == "LangGraph":
-                    response, image_url = asyncio.run(langgraph_agent.run_agent(prompt, mcp_servers, history_mode, containers))    
+                if agentType == "langgraph":
+                    response, image_url = asyncio.run(chat.run_langgraph_agent(
+                        query=prompt, 
+                        mcp_servers=mcp_servers, 
+                        history_mode=history_mode, 
+                        containers=containers))
+
                 else:
-                    response, image_url = asyncio.run(strands_agent.run_agent(prompt, [], mcp_servers, history_mode, containers))
-            
+                    response, image_url = asyncio.run(chat.run_strands_agent(
+                        query=prompt, 
+                        strands_tools=[], 
+                        mcp_servers=mcp_servers, 
+                        history_mode=history_mode, 
+                        containers=containers))
+                    
             # if langgraph_agent.response_msg:
             #     with st.expander(f"수행 결과"):
             #         st.markdown('\n\n'.join(langgraph_agent.response_msg))
@@ -392,7 +404,7 @@ if prompt := st.chat_input("메시지를 입력하세요."):
                 "images": image_url if image_url else []
             })
 
-            if agent_type == "LangGraph":
+            if agentType == "langgraph":
                 st.write(response)
 
             for url in image_url:

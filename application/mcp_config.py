@@ -1,8 +1,8 @@
-import chat
 import logging
 import sys
 import utils
 import boto3
+import os
 
 logging.basicConfig(
     level=logging.INFO,  # Default to INFO level
@@ -21,6 +21,8 @@ opensearch_username = config["opensearch_username"] if "opensearch_username" in 
 opensearch_password = config["opensearch_password"] if "opensearch_password" in config else None
 
 aws_region = config["region"] if "region" in config else "us-west-2"
+workingDir = os.path.dirname(os.path.abspath(__file__))
+logger.info(f"workingDir: {workingDir}")
 
 session = boto3.Session()
 credentials = session.get_credentials()
@@ -35,6 +37,9 @@ def load_config(mcp_type):
         mcp_type = 'openSearch_lambda'
     elif mcp_type == "OpenSearch MCP":
         mcp_type = 'OpenSearch'
+    elif mcp_type == "Knowledge Base Retriever":
+        mcp_type = 'mcp_server_retrieve'
+
     logger.info(f"mcp_type: {mcp_type}")
 
     if mcp_type == "Basic":
@@ -43,7 +48,7 @@ def load_config(mcp_type):
                 "search": {
                     "command": "python",
                     "args": [
-                        "application/mcp_server_basic.py"
+                        f"{workingDir}/mcp_server_basic.py"
                     ]
                 }
             }
@@ -55,7 +60,7 @@ def load_config(mcp_type):
                 "knowledge_base_lambda": {
                     "command": "python",
                     "args": [
-                        "application/mcp_server_lambda_knowledge_base.py"
+                        f"{workingDir}/mcp_server_lambda_knowledge_base.py"
                     ]
                 }
             }
@@ -67,7 +72,7 @@ def load_config(mcp_type):
                 "knowledge_base_custom": {
                     "command": "python",
                     "args": [
-                        "application/mcp_server_knowledge_base.py"
+                        f"{workingDir}/mcp_server_knowledge_base.py"
                     ],
                     "env": {
                         "KB_INCLUSION_TAG_KEY": "mcp-rag"
@@ -82,7 +87,7 @@ def load_config(mcp_type):
                 "openSearch_lambda": {
                     "command": "python",
                     "args": [
-                        "application/mcp_server_lambda_opensearch.py"
+                        f"{workingDir}/mcp_server_lambda_opensearch.py"
                     ]
                 }
             }
@@ -102,6 +107,16 @@ def load_config(mcp_type):
                         "AWS_ACCESS_KEY_ID": credentials.access_key,
                         "AWS_SECRET_ACCESS_KEY": credentials.secret_key
                     }
+                }
+            }
+        }
+    
+    elif mcp_type == "mcp_server_retrieve":
+        return {
+            "mcpServers": {
+                "mcp_server_retrieve": {
+                    "command": "python",
+                    "args": [f"{workingDir}/mcp_server_retrieve.py"]
                 }
             }
         }
