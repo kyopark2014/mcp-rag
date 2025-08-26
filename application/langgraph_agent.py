@@ -591,6 +591,7 @@ async def run_agent(query, mcp_servers, historyMode, containers):
         if references:
             ref = "\n\n### Reference\n"
             for i, reference in enumerate(references):
+                
                 ref += f"{i+1}. [{reference['title']}]({reference['url']}), {reference['content']}...\n"    
             result += ref
 
