@@ -624,6 +624,7 @@ export class CdkMcpRagStack extends cdk.Stack {
       "s3_arn": s3Bucket.bucketArn,
       "sharing_url": 'https://'+distribution_sharing.domainName,
       "knowledge_base_id": projectName,
+      "secret_name": `${projectName}/credentials`
     }    
     new cdk.CfnOutput(this, `environment-for-${projectName}`, {
       value: JSON.stringify(environment),

@@ -107,7 +107,7 @@ with st.sidebar:
         st.subheader("⚙️ MCP Config")
 
         mcp_options = [ 
-            "Basic", "MCP Knowledge Base Retriever", "AWS MCP (Knowledge Base)", "MCP Lambda (Knowledge Base)", "OpenSearch MCP", "MCP Lambda (OpenSearch)", "사용자 설정"
+            "Basic", "MCP Knowledge Base Retriever", "AWS MCP (Knowledge Base)", "MCP Lambda (Knowledge Base)", "OpenSearch MCP", "MCP Lambda (OpenSearch)", "agentcore gateway", "사용자 설정"
         ]
         mcp_selections = {}
         default_selections = ["Basic"]

@@ -1,5 +1,4 @@
 import utils
-import chat
 import boto3
 
 from langchain_community.vectorstores.opensearch_vector_search import OpenSearchVectorSearch
@@ -7,6 +6,8 @@ from opensearchpy import OpenSearch
 from langchain.docstore.document import Document
 from requests_aws4auth import AWS4Auth
 from opensearchpy import RequestsHttpConnection
+from langchain_aws import BedrockEmbeddings
+from botocore.config import Config
 
 import logging
 import sys
@@ -28,6 +29,10 @@ if opensearch_url is None:
 
 projectName = config["projectName"] if "projectName" in config else "langgraph-nova"
 region = config["region"] if "region" in config else "us-west-2"
+
+# Get configuration for document retrieval and hybrid search
+enableParentDocumentRetrival = "Enable"
+enableHybridSearch = "Enable"
 
 index_name = projectName
 session = boto3.Session(region_name=region)
@@ -148,11 +153,55 @@ def get_parent_content(parent_doc_id):
     
     return source['text'], metadata['name'], url
 
+def get_embedding():
+    LLM_embedding = [
+        {
+            "bedrock_region": "us-west-2", # Oregon
+            "model_type": "titan",
+            "model_id": "amazon.titan-embed-text-v2:0"
+        },
+        {
+            "bedrock_region": "us-east-1", # N.Virginia
+            "model_type": "titan",
+            "model_id": "amazon.titan-embed-text-v2:0"
+        },
+        {
+            "bedrock_region": "us-east-2", # Ohio
+            "model_type": "titan",
+            "model_id": "amazon.titan-embed-text-v2:0"
+        }
+    ]
+    
+    selected_embedding = 0
+    embedding_profile = LLM_embedding[selected_embedding]
+    bedrock_region = embedding_profile['bedrock_region']
+    model_id = embedding_profile['model_id']
+    logger.info(f"selected_embedding: {selected_embedding}, bedrock_region: {bedrock_region}, model_id: {model_id}")
+    
+    # bedrock   
+    boto3_bedrock = boto3.client(
+        service_name='bedrock-runtime',
+        region_name=bedrock_region, 
+        config=Config(
+            retries = {
+                'max_attempts': 30
+            }
+        )
+    )
+    
+    bedrock_embedding = BedrockEmbeddings(
+        client=boto3_bedrock,
+        region_name = bedrock_region,
+        model_id = model_id
+    )  
+    
+    return bedrock_embedding
+
 def retrieve_documents_from_opensearch(query, top_k):
     logger.info(f"###### retrieve_documents_from_opensearch ######")
 
     # Vector Search
-    bedrock_embedding = chat.get_embedding()       
+    bedrock_embedding = get_embedding()       
 
     vectorstore_opensearch = OpenSearchVectorSearch(
         index_name=index_name,  
@@ -165,7 +214,7 @@ def retrieve_documents_from_opensearch(query, top_k):
     )  
     
     relevant_docs = []
-    if chat.enableParentDocumentRetrival == 'Enable':
+    if enableParentDocumentRetrival == 'Enable':
         result = vectorstore_opensearch.similarity_search_with_score(
             query = query,
             k = top_k*2,  
@@ -245,7 +294,7 @@ def retrieve_documents_from_opensearch(query, top_k):
     # print('the number of docs (vector search): ', len(relevant_docs))
 
     # Lexical Search
-    if chat.enableHybridSearch == 'Enable':
+    if enableHybridSearch == 'Enable':
         relevant_docs += lexical_search(query, top_k)    
 
     return relevant_docs
