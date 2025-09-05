@@ -101,44 +101,7 @@ with st.sidebar:
     if mode == '이미지 분석':
         st.subheader("🌇 이미지 업로드")
         uploaded_file = st.file_uploader("이미지 요약을 위한 파일을 선택합니다.", type=["png", "jpg", "jpeg"])        
-
-    # debug checkbox
-    select_debugMode = st.checkbox('Debug Mode', value=True)
-    debugMode = 'Enable' if select_debugMode else 'Disable'
-    # print('debugMode: ', debugMode)
-
-    # multi region check box
-    select_multiRegion = st.checkbox('Multi Region', value=False)
-    multiRegion = 'Enable' if select_multiRegion else 'Disable'
-    #print('multiRegion: ', multiRegion)
-
-    # extended thinking of claude 3.7 sonnet
-    select_reasoning = st.checkbox('Reasoning', value=False)
-    reasoningMode = 'Enable' if select_reasoning else 'Disable'
-    # logger.info(f"reasoningMode: {reasoningMode}")
-
-     # RAG grading
-    select_grading = st.checkbox('Grading', value=False)
-    gradingMode = 'Enable' if select_grading else 'Disable'
-    # logger.info(f"gradingMode: {gradingMode}")
-
-    # ocr mode
-    select_ocr = st.checkbox('OCR', value=True)
-    ocr = 'Enable' if select_ocr else 'Disable'
-    
-    # contextual embedding
-    # When OCR is enabled, contextualEmbedding is automatically enabled
-    if select_ocr:
-        select_contextualEmbedding = st.checkbox('Contextual Embedding', value=True, disabled=True)
-    else:
-        select_contextualEmbedding = st.checkbox('Contextual Embedding', value=False)
-    contextualEmbedding = 'Enable' if select_contextualEmbedding else 'Disable'
-    #print('ocr: ', ocr)
-
-    uploaded_file = None
-    st.subheader("📋 문서 업로드")
-    uploaded_file = st.file_uploader("RAG를 위한 파일을 선택합니다.", type=["pdf", "txt", "py", "md", "csv", "json"], key=chat.fileId)
-   
+        
     mcp = {}
     if mode=='Agent' or mode=='Agent (Chat)':
         st.subheader("⚙️ MCP Config")
@@ -171,6 +134,43 @@ with st.sidebar:
         
         mcp_servers = [server for server, is_selected in mcp_selections.items() if is_selected]
 
+    uploaded_file = None
+    st.subheader("📋 문서 업로드")
+    uploaded_file = st.file_uploader("RAG를 위한 파일을 선택합니다.", type=["pdf", "txt", "py", "md", "csv", "json"], key=chat.fileId)
+   
+    # debug checkbox
+    select_debugMode = st.checkbox('Debug Mode', value=True)
+    debugMode = 'Enable' if select_debugMode else 'Disable'
+    # print('debugMode: ', debugMode)
+
+    # multi region check box
+    select_multiRegion = st.checkbox('Multi Region', value=False)
+    multiRegion = 'Enable' if select_multiRegion else 'Disable'
+    #print('multiRegion: ', multiRegion)
+
+    # extended thinking of claude 3.7 sonnet
+    select_reasoning = st.checkbox('Reasoning', value=False)
+    reasoningMode = 'Enable' if select_reasoning else 'Disable'
+    # logger.info(f"reasoningMode: {reasoningMode}")
+
+     # RAG grading
+    select_grading = st.checkbox('Grading', value=False)
+    gradingMode = 'Enable' if select_grading else 'Disable'
+    # logger.info(f"gradingMode: {gradingMode}")
+
+    # ocr mode
+    select_ocr = st.checkbox('OCR', value=True)
+    ocr = 'Enable' if select_ocr else 'Disable'
+
+    # contextual embedding
+    # When OCR is enabled, contextualEmbedding is automatically enabled
+    if select_ocr:
+        select_contextualEmbedding = st.checkbox('Contextual Embedding', value=True, disabled=True)
+    else:
+        select_contextualEmbedding = st.checkbox('Contextual Embedding', value=False)
+    contextualEmbedding = 'Enable' if select_contextualEmbedding else 'Disable'
+    #print('ocr: ', ocr)    
+    
     chat.update(modelName, debugMode, multiRegion, reasoningMode, gradingMode, contextualEmbedding, ocr)    
 
     st.success(f"Connected to {modelName}", icon="💚")
