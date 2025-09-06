@@ -1,0 +1,13 @@
+{
+    "name": "retrieve",
+    "description": "keyword to retrieve OpenSearch",
+    "inputSchema": {
+        "type": "object",
+        "properties": {
+            "keyword": {
+                "type": "string"
+            }
+        },
+        "required": ["keyword"]
+    }
+}

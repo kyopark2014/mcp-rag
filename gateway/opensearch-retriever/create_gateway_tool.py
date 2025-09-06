@@ -2,7 +2,8 @@ import os
 import boto3
 import json
 import zipfile
-import time 
+import time
+import base64 
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 config_path = os.path.join(script_dir, "config.json")
@@ -18,8 +19,16 @@ current_path = os.path.basename(script_dir)
 current_folder_name = current_path.split('/')[-1]
 targetname = current_folder_name
 projectName = config.get('projectName')
-region = config.get('region')
-accountId = config.get('accountId')
+
+region = config.get('region', "")
+accountId = config.get('accountId',"")
+if not accountId or not region:
+    session = boto3.Session()
+    region = session.region_name
+    sts_client = session.client('sts')
+    accountId = sts_client.get_caller_identity()['Account']
+    config['accountId'] = accountId
+    config['region'] = region
 
 def create_user_pool(user_pool_name: str):
     cognito_client = boto3.client('cognito-idp', region_name=region)   
@@ -282,6 +291,14 @@ def create_lambda_function_policy(lambda_function_name):
                     "ec2:*"
                 ],
                 "Resource": "*"
+            },
+            {
+                "Sid": "OpenSearchAccess",
+                "Effect": "Allow",
+                "Action": [
+                    "es:*"
+                ],
+                "Resource": "*"
             }
         ]
     }
@@ -382,40 +399,6 @@ if not knowledge_base_id:
         json.dump(config, f, indent=2)
     print(f"update knowledge_base_id to {knowledge_base_id} in config.json")
 
-def create_dummpy_lambda_function(lambda_function_path: str):
-    body = """import json
-import boto3
-import os
-
-def lambda_handler(event, context):
-    print(f"event: {event}")
-    print(f"context: {context}")
-
-    toolName = context.client_context.custom['bedrockAgentCoreToolName']
-    print(f"context.client_context: {context.client_context}")
-    print(f"Original toolName: {toolName}")
-    
-    delimiter = "___"
-    if delimiter in toolName:
-        toolName = toolName[toolName.index(delimiter) + len(delimiter):]
-    print(f"Converted toolName: {toolName}")
-
-    keyword = event.get('keyword')
-    print(f"keyword: {keyword}")
-
-    if toolName == 'retrieve':
-        return {
-            'statusCode': 200, 
-            'body': f"{toolName} is supported"
-        }
-    else:
-        return {
-            'statusCode': 200, 
-            'body': f"{toolName} is not supported"
-        }"""
-    
-    with open(os.path.join(lambda_function_path, 'lambda_function.py'), 'w') as f:
-        f.write(body)    
 
 def create_trust_policy_for_lambda():
     """Create trust policy for Bedrock AgentCore"""
@@ -526,46 +509,83 @@ user_pool_id = cognito_config.get('user_pool_id')
 username = cognito_config.get('test_username')
 password = cognito_config.get('test_password')
 
-def update_lambda_function_arn():
-    # zip lambda
-    lambda_function_name = 'lambda-' + current_folder_name + '-for-' + config['projectName']
-    lambda_function_zip_path = os.path.join(script_dir, lambda_function_name, "lambda_function.zip")
-    lambda_dir = os.path.join(script_dir, lambda_function_name)
-    # Create zip with all files and folders recursively
+def create_ecr_repository(repository_name):
+    """Create ECR repository if it doesn't exist"""
     try:
-        with zipfile.ZipFile(lambda_function_zip_path, 'w', zipfile.ZIP_DEFLATED) as zip_file:            
-            for root, dirs, files in os.walk(lambda_dir):
-                for file in files:
-                    if file == 'lambda_function.zip':
-                        continue
-                    file_path = os.path.join(root, file)
-                    arcname = os.path.relpath(file_path, lambda_dir)
-                    zip_file.write(file_path, arcname)
-        print(f"✓ Lambda function zip created successfully: {lambda_function_zip_path}")
+        ecr_client = boto3.client('ecr', region_name=region)
+        
+        # Check if repository already exists
+        try:
+            response = ecr_client.describe_repositories(repositoryNames=[repository_name])
+            repository_uri = response['repositories'][0]['repositoryUri']
+            print(f"✓ ECR repository already exists: {repository_uri}")
+            return repository_uri
+        except ecr_client.exceptions.RepositoryNotFoundException:
+            # Create new repository
+            response = ecr_client.create_repository(
+                repositoryName=repository_name,
+                imageScanningConfiguration={
+                    'scanOnPush': True
+                }
+            )
+            repository_uri = response['repository']['repositoryUri']
+            print(f"✓ ECR repository created: {repository_uri}")
+            return repository_uri
+            
     except Exception as e:
-        print(f"Failed to create Lambda function zip: {e}")
+        print(f"Failed to create ECR repository: {e}")
+        return None
 
-        # initiate lambda_function.py
-        lambda_function_path = os.path.join(script_dir, lambda_function_name)
-        if not os.path.exists(lambda_function_path):
-            print(f"Lambda function path not found, creating new lambda function path: {lambda_function_path}")
-            os.makedirs(lambda_function_path)
+def build_and_push_docker_image(lambda_function_name, lambda_dir):
+    """Build and push Docker image to ECR"""
+    try:
+        # Create ECR repository
+        repository_name = f"{projectName.lower()}-{lambda_function_name}"
+        repository_uri = create_ecr_repository(repository_name)
+        
+        if not repository_uri:
+            return None
+            
+        # Get ECR login token
+        ecr_client = boto3.client('ecr', region_name=region)
+        response = ecr_client.get_authorization_token()
+        token = response['authorizationData'][0]['authorizationToken']
+        username, password = base64.b64decode(token).decode().split(':')
+        
+        # Login to ECR
+        import subprocess
+        login_cmd = f"echo {password} | docker login --username {username} --password-stdin {repository_uri.split('/')[0]}"
+        subprocess.run(login_cmd, shell=True, check=True)
+        print("✓ Logged in to ECR")
+        
+        # Build Docker image
+        image_tag = f"{repository_uri}:latest"
+        build_cmd = f"docker buildx build --platform linux/amd64 --load -t {image_tag} {lambda_dir}"
+        subprocess.run(build_cmd, shell=True, check=True)
+        print(f"✓ Docker image built: {image_tag}")
+        
+        # Push image to ECR
+        push_cmd = f"docker push {image_tag}"
+        subprocess.run(push_cmd, shell=True, check=True)
+        print(f"✓ Docker image pushed to ECR: {image_tag}")
+        
+        return image_tag
+        
+    except Exception as e:
+        print(f"Failed to build and push Docker image: {e}")
+        return None
 
-            create_dummpy_lambda_function(lambda_function_path)
-            print(f"✓ Lambda function path created successfully: {lambda_function_path}")
+def update_lambda_function_arn():
+    lambda_function_name = 'lambda-' + current_folder_name + '-for-' + config['projectName']
+    print(f"lambda_function_name: {lambda_function_name}")
+    lambda_dir = os.path.join(script_dir, lambda_function_name)
+    
+    # Check if lambda directory exists
+    if not os.path.exists(lambda_dir):
+        print(f"Lambda function directory not found: {lambda_dir}")
+        return None
 
-            with zipfile.ZipFile(lambda_function_zip_path, 'w', zipfile.ZIP_DEFLATED) as zip_file:     
-                for root, dirs, files in os.walk(lambda_dir):
-                    for file in files:
-                        if file == 'lambda_function.zip':
-                            continue
-                        file_path = os.path.join(root, file)
-                        arcname = os.path.relpath(file_path, lambda_dir)
-                        zip_file.write(file_path, arcname)
-            print(f"✓ Lambda function zip created successfully: {lambda_function_zip_path}")
-        pass
-
-    lambda_function_arn = config.get('lambda_function_arn')    
+    lambda_function_arn = config.get('lambda_function_arn', "")    
     lambda_client = boto3.client('lambda', region_name=region)
     
     need_update = True
@@ -581,84 +601,66 @@ def update_lambda_function_arn():
 
         if not lambda_function_arn:
             print(f"Lambda function not found, creating new lambda function")
+            need_update = False
+
+            print(f"Creating new lambda function: {lambda_function_name}")
             # create lambda function role
             lambda_function_role = create_lambda_function_role(lambda_function_name)
-            
-            if not lambda_function_role:
-                print(f"Failed to create IAM role for Lambda function: {lambda_function_name}")
-                return None
-
+        
+            # Build and push Docker image
+            print("Building and pushing Docker image...")
+            image_uri = build_and_push_docker_image(lambda_function_name, lambda_dir)
+        
             # create lambda function
-            need_update = False
-            try:
-                # Set environment variables
-                environment_variables = {}
-                environment_variables['KNOWLEDGE_BASE_ID'] = config.get('knowledge_base_id', "")
-                
-                response = lambda_client.create_function(
-                    FunctionName=lambda_function_name,
-                    Runtime='python3.13',
-                    Handler='lambda_function.lambda_handler',
-                    Role=lambda_function_role,
-                    Description=f'Lambda function for {lambda_function_name}',
-                    Timeout=60,
-                    Environment={
-                        'Variables': environment_variables
-                    },
-                    Code={
-                        'ZipFile': open(lambda_function_zip_path, 'rb').read()
-                    }
-                )
-                lambda_function_arn = response['FunctionArn']
-                print(f"✓ Lambda function created successfully: {lambda_function_arn}")
+            # Set environment variables
+            sharing_url = config.get('sharing_url', "")
+            opensearch_url = config.get('opensearch_url', "")
 
-                print("Waiting for Lambda function code creation to complete...")
-                time.sleep(5)
-            except Exception as e:
-                print(f"Failed to create Lambda function: {e}")
-                return None
-    
+            environment_variables = {}
+            environment_variables['bedrock_region'] = region
+            environment_variables['projectName'] = projectName
+            environment_variables['sharing_url'] = sharing_url
+            environment_variables['opensearch_url'] = opensearch_url
+            
+            response = lambda_client.create_function(
+                FunctionName=lambda_function_name,
+                Role=lambda_function_role,
+                Description=f'Lambda function for {lambda_function_name}',
+                Timeout=60,
+                Environment={
+                    'Variables': environment_variables
+                },
+                Code={
+                    'ImageUri': image_uri
+                },
+                PackageType='Image'
+            )
+            lambda_function_arn = response['FunctionArn']
+            print(f"✓ Lambda function created successfully: {lambda_function_arn}")
+
+            print("Waiting for Lambda function code creation to complete...")
+            time.sleep(5)
+        
     if need_update:
+        # Update lambda function role to ensure latest policy
+        print("Updating lambda function role...")
+        create_lambda_function_role(lambda_function_name)
+        
+        # Build and push new Docker image
+        print("Building and pushing updated Docker image...")
+        image_uri = build_and_push_docker_image(lambda_function_name, lambda_dir)
+        
         # update lambda code
         response = lambda_client.update_function_code(
             FunctionName=lambda_function_name,
-            ZipFile=open(lambda_function_zip_path, 'rb').read()
+            ImageUri=image_uri
         )
         lambda_function_arn = response['FunctionArn']
         print(f"✓ Lambda function code updated successfully: {lambda_function_arn}")
         
-        # Wait for code update to complete before updating configuration
         print("Waiting for Lambda function code update to complete...")
         time.sleep(5)
         
-        # update lambda configuration (timeout and environment variables)
-        max_retries = 3
-        retry_count = 0
-        
-        while retry_count < max_retries:
-            try:
-                # Set environment variables
-                environment_variables = {}
-                environment_variables['KNOWLEDGE_BASE_ID'] = config.get('knowledge_base_id', "")
-                
-                lambda_client.update_function_configuration(
-                    FunctionName=lambda_function_name,
-                    Timeout=60,
-                    Environment={
-                        'Variables': environment_variables
-                    }
-                )
-                print(f"✓ Lambda function timeout and environment variables updated")
-                break
-            except Exception as e:
-                retry_count += 1
-                if "ResourceConflictException" in str(e) and retry_count < max_retries:
-                    print(f"Lambda function is still updating, waiting 10 seconds before retry {retry_count}/{max_retries}...")
-                    time.sleep(10)
-                else:
-                    print(f"Warning: Failed to update Lambda configuration after {retry_count} attempts: {e}")
-                    break
-
     # update config
     if lambda_function_arn:
         config['lambda_function_arn'] = lambda_function_arn
