@@ -13,9 +13,10 @@
   "knowledge_base_id": "JIXNNT8WYD",
   "secret_name": "mcp/credentials",
   "cognito": {
-    "client_id": "3kif34to0lot9tr6kcq6nsqill",
+    "user_pool_name": "mcp-rag-agentcore-user-pool",
+    "user_pool_id": "us-west-2_nPFTknyXd",
     "client_name": "mcp-rag-agentcore-client",
-    "region": "us-west-2",
+    "client_id": "3kif34to0lot9tr6kcq6nsqill",
     "test_username": "mcp-rag-test-user@example.com",
     "test_password": "TestPassword123!"
   }
