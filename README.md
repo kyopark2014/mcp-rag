@@ -387,6 +387,52 @@ def retrieve_opensearch(query):
     return payload['response']
 ```
 
+## AgentCore Gateway
+
+AgentCore Gateway는 Lambda로 MCP서버를 제공할 수 있습니다. [config.json.sample](./gateway/opensearch-retriever/config.json.sample)을 복사하여 config.json 파일을 생성합니다.
+
+```text
+cd gateway/opensearch-retriever && cp config.json.sample config.json
+```
+
+config.json에서 아래와 같이 project name과 opensearch url 및 CloudFront의 domain인 sharing_url을 설정합니다. 이 정보들은 cdk 배포시에 생성된 output에서 확인할 수 있습니다.
+
+```java
+{
+  "projectName": "mcp-rag",
+  "opensearch_url": "https://search-mcp-rag-mxtkul2z3qv5iiqprb7q3jx4wy.us-west-2.es.amazonaws.com",
+  "sharing_url": "https://d20lfnyi6fvd87.cloudfront.net"
+}
+```
+
+아래 방식으로 AgentCore에 "mcp-rag"라는 gateway를 위한 role을 설치합니다.
+
+```text
+python create_gateway_role.py
+```
+
+이때의 결과는 아래와 같습니다.
+
+<img width="750" height="358" alt="image" src="https://github.com/user-attachments/assets/46462161-40f3-4785-b7b2-0a95814bb236" />
+
+
+아래와 같이 AgentCore Gateway를 설치하고 target으로 "opensearch-retriever"를 배포합니다. 만약 OpenSearch를 조회하는 RAG용 Lambda가 없다면 설치합니다.
+
+```python
+python create_gateway_tool.py
+```
+
+설치가 완료되었으므로 아래와 같이 동작을 테스트 합니다.
+
+```python
+test_mcp_remote.py
+```
+
+이때의 결과는 아래와 같습니다. secret의 bearer token이 expire되면 갱신후 접속을 시도합니다. 이때 list_tools로 available tools에 대해 확인후 실행합니다.
+
+<img width="950" height="648" alt="image" src="https://github.com/user-attachments/assets/f4be5b92-c7d5-473d-b347-171513adce41" />
+
+
 
 ## 설치하기
 
