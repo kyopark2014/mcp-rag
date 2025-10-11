@@ -12,22 +12,17 @@ import opensearch as rag
 import strands_agent
 import langgraph_agent
 import mcp_config
-import os
 
 from io import BytesIO
 from PIL import Image
 from langchain_aws import ChatBedrock
 from botocore.config import Config
 from langchain_core.prompts import MessagesPlaceholder, ChatPromptTemplate
-from langchain.memory import ConversationBufferWindowMemory
-from langchain_core.tools import tool
-from langchain.docstore.document import Document
+from langchain_core.documents import Document
 from tavily import TavilyClient  
-from langchain_community.tools.tavily_search import TavilySearchResults
 from urllib import parse
 from pydantic.v1 import BaseModel, Field
 from langchain_core.output_parsers import StrOutputParser
-from langchain_community.utilities.tavily_search import TavilySearchAPIWrapper
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_core.messages import HumanMessage, AIMessage, ToolMessage, AIMessageChunk
 from langchain_mcp_adapters.client import MultiServerMCPClient
@@ -49,21 +44,40 @@ logging.basicConfig(
 )
 logger = logging.getLogger("chat")
 
-userId = uuid.uuid4().hex
-map_chain = dict() 
+# Simple memory class to replace ConversationBufferWindowMemory
+class SimpleMemory:
+    def __init__(self, k=5):
+        self.k = k
+        self.chat_memory = SimpleChatMemory()
+    
+    def load_memory_variables(self, inputs):
+        return {"chat_history": self.chat_memory.messages[-self.k:] if len(self.chat_memory.messages) > self.k else self.chat_memory.messages}
 
+class SimpleChatMemory:
+    def __init__(self):
+        self.messages = []
+    
+    def add_user_message(self, message):
+        self.messages.append(HumanMessage(content=message))
+    
+    def add_ai_message(self, message):
+        self.messages.append(AIMessage(content=message))
+    
+    def clear(self):
+        self.messages = []
+
+map_chain = dict() 
 checkpointers = dict() 
 memorystores = dict() 
 
 checkpointer = MemorySaver()
 memorystore = InMemoryStore()
-
-checkpointers[userId] = checkpointer
-memorystores[userId] = memorystore
+memory_chain = None  # Initialize memory_chain as global variable
 
 reasoning_mode = 'Disable'
 grading_mode = 'Disable'
 agent_type = 'langgraph'
+enable_memory = 'Disable'
 user_id = agent_type # for testing
 
 streaming_index = None
@@ -78,12 +92,15 @@ def add_notification(containers, message):
         containers['notification'][index].info(message)
     index += 1
 
-def update_streaming_result(containers, message):
+def update_streaming_result(containers, message, type):
     global streaming_index
-    streaming_index = index 
+    streaming_index = index
 
     if containers is not None:
-        containers['notification'][streaming_index].markdown(message)
+        if type == "markdown":
+            containers['notification'][streaming_index].markdown(message)
+        elif type == "info":
+            containers['notification'][streaming_index].info(message)
 
 def update_tool_notification(containers, tool_index, message):
     if containers is not None:
@@ -417,33 +434,6 @@ def get_tool_info(tool_name, tool_content):
 
     return content, urls, tool_references
 
-
-def initiate():
-    global userId
-    global memory_chain, checkpointers, memorystores, checkpointer, memorystore
-
-    userId = uuid.uuid4().hex
-    logger.info(f"userId: {userId}")
-
-    if userId in map_chain:  
-            # print('memory exist. reuse it!')
-            memory_chain = map_chain[userId]
-
-            checkpointer = checkpointers[userId]
-            memorystore = memorystores[userId]
-    else: 
-        # print('memory does not exist. create new one!')        
-        memory_chain = ConversationBufferWindowMemory(memory_key="chat_history", output_key='answer', return_messages=True, k=5)
-        map_chain[userId] = memory_chain
-
-        checkpointer = MemorySaver()
-        memorystore = InMemoryStore()
-
-        checkpointers[userId] = checkpointer
-        memorystores[userId] = memorystore
-
-initiate()
-
 config = utils.load_config()
 print(f"config: {config}")
 
@@ -510,9 +500,9 @@ grading_mode = 'Disable'
 contextual_embedding = 'Disable'
 ocr_mode = 'Disable'
 
-def update(modelName, debugMode, multiRegion, reasoningMode, gradingMode, contextualEmbedding, ocr):    
-    global model_name, model_id, model_type, debug_mode, multi_region, reasoning_mode, grading_mode, contextual_embedding, ocr_mode
-    global models, mcp_json
+def update(modelName, debugMode, multiRegion, reasoningMode, gradingMode, agentType, memoryMode):    
+    global model_name, model_id, model_type, debug_mode, multi_region, reasoning_mode, grading_mode, enable_memory
+    global models, user_id, agent_type
 
     # load mcp.env    
     mcp_env = utils.load_mcp_env()
@@ -526,9 +516,9 @@ def update(modelName, debugMode, multiRegion, reasoningMode, gradingMode, contex
         model_type = models[0]["model_type"]
                                 
     if debug_mode != debugMode:
-        debug_mode = debugMode
+        debug_mode = debugMode        
         logger.info(f"debug_mode: {debug_mode}")
-        
+
     if reasoning_mode != reasoningMode:
         reasoning_mode = reasoningMode
         logger.info(f"reasoning_mode: {reasoning_mode}")    
@@ -542,29 +532,68 @@ def update(modelName, debugMode, multiRegion, reasoningMode, gradingMode, contex
         grading_mode = gradingMode
         logger.info(f"grading_mode: {grading_mode}")            
         mcp_env['grading_mode'] = grading_mode
-    
-    if contextual_embedding != contextualEmbedding:
-        contextual_embedding = contextualEmbedding
-        logger.info(f"contextual_embedding: {contextual_embedding}")
 
-    if ocr_mode != ocr:
-        ocr_mode = ocr
-        logger.info(f"ocr_mode: {ocr_mode}")
-        
+    if agent_type != agentType:
+        agent_type = agentType
+        logger.info(f"agent_type: {agent_type}")
+
+        logger.info(f"agent_type changed, update memory variables.")
+        user_id = agent_type
+        logger.info(f"user_id: {user_id}")
+        mcp_env['user_id'] = user_id
+    
+    if enable_memory != memoryMode:
+        enable_memory = memoryMode
+        logger.info(f"enable_memory: {enable_memory}")
+
     # update mcp.env    
     utils.save_mcp_env(mcp_env)
-    logger.info(f"mcp.env updated: {mcp_env}")
+    # logger.info(f"mcp.env updated: {mcp_env}")
+
+def initiate():
+    global memory_chain, checkpointer, memorystore, checkpointers, memorystores
+
+    if user_id in map_chain:  
+        logger.info(f"memory exist. reuse it!")
+        memory_chain = map_chain[user_id]
+
+        checkpointer = checkpointers[user_id]
+        memorystore = memorystores[user_id]
+    else: 
+        logger.info(f"memory not exist. create new memory!")
+        memory_chain = SimpleMemory(k=5)
+        map_chain[user_id] = memory_chain
+
+        checkpointer = MemorySaver()
+        memorystore = InMemoryStore()
+
+        checkpointers[user_id] = checkpointer
+        memorystores[user_id] = memorystore
 
 def clear_chat_history():
-    memory_chain = []
-    map_chain[userId] = memory_chain
+    global memory_chain
+    # Initialize memory_chain if it doesn't exist
+    if memory_chain is None:
+        initiate()
+    
+    if memory_chain and hasattr(memory_chain, 'chat_memory'):
+        memory_chain.chat_memory.clear()
+    else:
+        memory_chain = SimpleMemory(k=5)
+    map_chain[user_id] = memory_chain
 
 def save_chat_history(text, msg):
-    memory_chain.chat_memory.add_user_message(text)
-    if len(msg) > MSG_LENGTH:
-        memory_chain.chat_memory.add_ai_message(msg[:MSG_LENGTH])                          
-    else:
-        memory_chain.chat_memory.add_ai_message(msg) 
+    global memory_chain
+    # Initialize memory_chain if it doesn't exist
+    if memory_chain is None:
+        initiate()
+    
+    if memory_chain and hasattr(memory_chain, 'chat_memory'):
+        memory_chain.chat_memory.add_user_message(text)
+        if len(msg) > MSG_LENGTH:
+            memory_chain.chat_memory.add_ai_message(msg[:MSG_LENGTH])                          
+        else:
+            memory_chain.chat_memory.add_ai_message(msg) 
 
 def create_object(key, body):
     """
@@ -1094,7 +1123,9 @@ def get_embedding():
 ####################### LangChain #######################
 # General Conversation
 #########################################################
-def general_conversation(query):
+def general_conversation(query, st):
+    global memory_chain
+    initiate()  # Initialize memory_chain
     llm = get_chat(extended_thinking=reasoning_mode)
 
     system = (
@@ -1111,22 +1142,55 @@ def general_conversation(query):
         ("human", human)
     ])
                 
-    history = memory_chain.load_memory_variables({})["chat_history"]
+    if memory_chain and hasattr(memory_chain, 'load_memory_variables'):
+        history = memory_chain.load_memory_variables({})["chat_history"]
+    else:
+        history = []
 
-    chain = prompt | llm | StrOutputParser()
-    try: 
-        stream = chain.stream(
-            {
-                "history": history,
-                "input": query,
-            }
-        )  
-        logger.info(f"stream: {stream}")
+    if model_type == 'openai':
+        # For OpenAI models, use invoke instead of stream to avoid parsing issues
+        chain = prompt | llm
+        try: 
+            result = chain.invoke(
+                {
+                    "history": history,
+                    "input": query,
+                }
+            )  
+            logger.info(f"result: {result}")
             
-    except Exception:
-        err_msg = traceback.format_exc()
-        logger.info(f"error message: {err_msg}")      
-        raise Exception ("Not able to request to LLM: "+err_msg)
+            content = result.content
+            if '<reasoning>' in content and '</reasoning>' in content:
+                # Extract reasoning content and show it in st.info
+                reasoning_start = content.find('<reasoning>') + 11  # Length of '<reasoning>'
+                reasoning_end = content.find('</reasoning>')
+                reasoning_content = content[reasoning_start:reasoning_end]
+                st.info(f"{reasoning_content}")
+                
+                # Extract main content after reasoning tag
+                content = content.split('</reasoning>', 1)[1] if '</reasoning>' in content else content
+            stream = iter([content])
+            
+        except Exception:
+            err_msg = traceback.format_exc()
+            logger.info(f"error message: {err_msg}")      
+            raise Exception ("Not able to request to LLM: "+err_msg)
+    else:
+        # For other models, use streaming
+        chain = prompt | llm | StrOutputParser()
+        try: 
+            stream = chain.stream(
+                {
+                    "history": history,
+                    "input": query,
+                }
+            )  
+            logger.info(f"stream: {stream}")
+                
+        except Exception:
+            err_msg = traceback.format_exc()
+            logger.info(f"error message: {err_msg}")      
+            raise Exception ("Not able to request to LLM: "+err_msg)
         
     return stream
 
@@ -1947,7 +2011,7 @@ async def run_strands_agent(query, strands_tools, mcp_servers, history_mode, con
                 text = event["data"]
                 logger.info(f"[data] {text}")
                 current += text
-                update_streaming_result(containers, current)
+                update_streaming_result(containers, current, "markdown")
 
             elif "result" in event:
                 final = event["result"]                
@@ -2148,7 +2212,7 @@ async def run_langgraph_agent(query, mcp_servers, history_mode, containers):
                                 result += text_content
                                 
                             # logger.info(f"result: {result}")                
-                            update_streaming_result(containers, result)
+                            update_streaming_result(containers, result, "markdown")
 
                         elif content_item.get('type') == 'tool_use':
                             logger.info(f"content_item: {content_item}")      

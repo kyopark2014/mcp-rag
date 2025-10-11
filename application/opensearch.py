@@ -3,7 +3,7 @@ import boto3
 
 from langchain_community.vectorstores.opensearch_vector_search import OpenSearchVectorSearch
 from opensearchpy import OpenSearch
-from langchain.docstore.document import Document
+from langchain_core.documents import Document
 from requests_aws4auth import AWS4Auth
 from opensearchpy import RequestsHttpConnection
 from langchain_aws import BedrockEmbeddings
