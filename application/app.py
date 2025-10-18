@@ -79,12 +79,12 @@ with st.sidebar:
 
     # model selection box
     if mode == '이미지 분석':
-        index = 7
+        index = 4
     else:
-        index = 7
+        index = 0
     modelName = st.selectbox(
         '🖊️ 사용 모델을 선택하세요',
-        ("Nova Premier", 'Nova Pro', 'Nova Lite', 'Nova Micro', "Claude 4 Sonnet", "Claude 4 Opus", 'Claude 3.7 Sonnet', 'Claude 3.5 Sonnet', 'Claude 3.0 Sonnet', 'Claude 3.5 Haiku'), index=index
+        ("Claude 4.5 Haiku", "Claude 4.5 Sonnet", "Claude 4 Sonnet", "Claude 4 Opus", 'Claude 3.7 Sonnet', 'Claude 3.5 Sonnet', 'Claude 3.0 Sonnet', 'Claude 3.5 Haiku', "Nova Premier", 'Nova Pro', 'Nova Lite', 'Nova Micro'), index=index
     )
 
     if mode == 'RAG':
