@@ -519,3 +519,8 @@ streamlit run application/app.py
 
 <img src="https://github.com/user-attachments/assets/137e029b-5f9c-410c-a05a-cdcf86d6d307" width="600">
 
+
+
+## Reference
+
+[기업용 RAG는 왜 실패하는가…엔터프라이즈 환경에서 RAG를 확장하는 법](https://www.itworld.co.kr/article/4112593/%EA%B8%B0%EC%97%85%EC%9A%A9-rag%EB%8A%94-%EC%99%9C-%EC%8B%A4%ED%8C%A8%ED%95%98%EB%8A%94%EA%B0%80%EC%97%94%ED%84%B0%ED%94%84%EB%9D%BC%EC%9D%B4%EC%A6%88-%ED%99%98%EA%B2%BD%EC%97%90%EC%84%9C-rag.html)
